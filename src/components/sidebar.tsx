@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useAccount, useConnect } from "wagmi";
+import { useAccount, useConnect, useDisconnect } from "wagmi";
 import { injected } from "wagmi/connectors";
 import {
   LayoutDashboard,
@@ -42,25 +42,24 @@ function RadarIcon({ className }: { className?: string }) {
 function WalletSection() {
   const { address, isConnected } = useAccount();
   const { connect } = useConnect();
+  const { disconnect } = useDisconnect();
 
   if (isConnected && address) {
     return (
-      <div className="flex items-center gap-2 px-1 font-mono text-[12px]" style={{ color: "#888" }}>
+      <button
+        onClick={() => disconnect()}
+        className="flex items-center gap-2 px-1 font-mono text-[12px] hover:opacity-70 transition-opacity"
+        style={{ color: "#888" }}
+      >
         <span className="block h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
         {shortAddress(address)}
-      </div>
+      </button>
     );
   }
 
   return (
     <button
-      onClick={() => {
-        try {
-          connect({ connector: injected() });
-        } catch {
-          /* no wallet — do nothing */
-        }
-      }}
+      onClick={() => connect({ connector: injected() })}
       className="group relative inline-flex w-full rounded-md transition-shadow hover:shadow-[0_0_20px_rgba(37,99,235,0.25)]"
     >
       <span

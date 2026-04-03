@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Bot, CheckCircle2 } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
+import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { agentRegistryConfig } from "@/lib/contracts";
 
 const inputClass =
   "flex h-9 w-full rounded-md border px-3 py-1 font-mono text-sm shadow-sm transition-colors placeholder:text-[#444] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#2563EB]/50";
@@ -14,17 +16,38 @@ const inputStyle = {
 };
 
 export default function AgentsPage() {
-  const [submitted, setSubmitted] = useState(false);
+  const { address, isConnected } = useAccount();
+  const { data: hash, writeContract, isPending, error: writeError, reset } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+
   const [form, setForm] = useState({
     name: "",
     description: "",
     metadataURI: "",
   });
+  const [walletWarning, setWalletWarning] = useState(false);
+
+  useEffect(() => {
+    if (isSuccess) {
+      setForm({ name: "", description: "", metadataURI: "" });
+    }
+  }, [isSuccess]);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setSubmitted(true);
-    setForm({ name: "", description: "", metadataURI: "" });
+    reset();
+    setWalletWarning(false);
+
+    if (!isConnected || !address) {
+      setWalletWarning(true);
+      return;
+    }
+
+    writeContract({
+      ...agentRegistryConfig,
+      functionName: "registerAgent",
+      args: [address, form.metadataURI],
+    });
   }
 
   return (
@@ -113,17 +136,32 @@ export default function AgentsPage() {
 
           <button
             type="submit"
-            className="flex h-10 w-full items-center justify-center rounded-md text-sm font-medium text-white transition-colors hover:opacity-90"
+            disabled={isPending || isConfirming}
+            className="flex h-10 w-full items-center justify-center rounded-md text-sm font-medium text-white transition-colors hover:opacity-90 disabled:opacity-50"
             style={{ backgroundColor: "#2563EB" }}
           >
-            Register Agent
+            {isPending || isConfirming ? "Registering..." : "Register Agent"}
           </button>
         </form>
       </div>
 
+      {/* Wallet warning */}
+      <AnimatePresence>
+        {walletWarning && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+            className="mt-4 flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-400"
+          >
+            Please connect your wallet
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Success banner */}
       <AnimatePresence>
-        {submitted && (
+        {isSuccess && hash && (
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
@@ -131,7 +169,23 @@ export default function AgentsPage() {
             className="mt-4 flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm font-medium text-emerald-400"
           >
             <CheckCircle2 className="w-4 h-4 shrink-0" />
-            Agent registered successfully
+            Agent registered on Hedera ✓ tx: {hash.slice(0, 6)}...{hash.slice(-4)}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Error banner */}
+      <AnimatePresence>
+        {writeError && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+            className="mt-4 flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-400"
+          >
+            {writeError.message.length > 120
+              ? writeError.message.slice(0, 120) + "..."
+              : writeError.message}
           </motion.div>
         )}
       </AnimatePresence>

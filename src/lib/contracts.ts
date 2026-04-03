@@ -2,11 +2,10 @@ import AgentRegistryABI from "@/contracts/abis/AgentRegistry.json";
 import PolicyManagerABI from "@/contracts/abis/PolicyManager.json";
 import AssessmentRegistryABI from "@/contracts/abis/AssessmentRegistry.json";
 
-// TODO: Replace with real deployed addresses
 export const CONTRACT_ADDRESSES = {
-  AgentRegistry: "0x0000000000000000000000000000000000000000",
-  PolicyManager: "0x0000000000000000000000000000000000000000",
-  AssessmentRegistry: "0x0000000000000000000000000000000000000000",
+  AgentRegistry: "0xe0595502b10398D7702Ed43eDcf8101Fd67c0991",
+  PolicyManager: "0x226F68C0D8F26A478F4F64d2733376DAB98Fcc6c",
+  AssessmentRegistry: "0xeA86E74c8c89a30F6180B4d5c3d9C58C981d3638",
 } as const;
 
 export const agentRegistryConfig = {

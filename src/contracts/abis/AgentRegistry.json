@@ -1,24 +1,76 @@
 [
   {
-    "name": "registerAgent",
     "type": "function",
+    "name": "agentCount",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint256" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "agents",
+    "inputs": [{ "name": "", "type": "address" }],
+    "outputs": [
+      { "name": "owner", "type": "address" },
+      { "name": "metadataURI", "type": "string" },
+      { "name": "active", "type": "bool" },
+      { "name": "registeredAt", "type": "uint256" }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getAgent",
+    "inputs": [{ "name": "agent", "type": "address" }],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "components": [
+          { "name": "owner", "type": "address" },
+          { "name": "metadataURI", "type": "string" },
+          { "name": "active", "type": "bool" },
+          { "name": "registeredAt", "type": "uint256" }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "registerAgent",
     "inputs": [
+      { "name": "agent", "type": "address" },
       { "name": "metadataURI", "type": "string" }
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
   },
   {
-    "name": "getAgent",
     "type": "function",
+    "name": "toggleAgent",
     "inputs": [
-      { "name": "agentId", "type": "uint256" }
-    ],
-    "outputs": [
-      { "name": "owner", "type": "address" },
-      { "name": "metadataURI", "type": "string" },
+      { "name": "agent", "type": "address" },
       { "name": "active", "type": "bool" }
     ],
-    "stateMutability": "view"
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "event",
+    "name": "AgentRegistered",
+    "inputs": [
+      { "name": "agent", "type": "address", "indexed": true },
+      { "name": "owner", "type": "address", "indexed": true },
+      { "name": "metadataURI", "type": "string", "indexed": false }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "AgentToggled",
+    "inputs": [
+      { "name": "agent", "type": "address", "indexed": true },
+      { "name": "active", "type": "bool", "indexed": false }
+    ]
   }
 ]

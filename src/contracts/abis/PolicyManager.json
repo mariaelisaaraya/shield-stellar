@@ -1,12 +1,63 @@
 [
   {
-    "name": "setPolicy",
+    "type": "constructor",
+    "inputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
     "type": "function",
+    "name": "getThresholds",
+    "inputs": [],
+    "outputs": [
+      { "name": "low", "type": "uint256" },
+      { "name": "medium", "type": "uint256" }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getVerdict",
+    "inputs": [{ "name": "riskScore", "type": "uint256" }],
+    "outputs": [{ "name": "", "type": "string" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "lowThreshold",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint256" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "mediumThreshold",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint256" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "owner",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "address" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "setPolicy",
     "inputs": [
-      { "name": "warnThreshold", "type": "uint256" },
-      { "name": "blockThreshold", "type": "uint256" }
+      { "name": "_lowThreshold", "type": "uint256" },
+      { "name": "_mediumThreshold", "type": "uint256" }
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
+  },
+  {
+    "type": "event",
+    "name": "PolicyUpdated",
+    "inputs": [
+      { "name": "low", "type": "uint256", "indexed": false },
+      { "name": "medium", "type": "uint256", "indexed": false }
+    ]
   }
 ]
