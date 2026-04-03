@@ -25,7 +25,7 @@ export default function RootLayout({
         <Providers>
           <Sidebar />
           <main
-            className="ml-[240px] min-h-dvh overflow-y-auto px-8 py-8"
+            className="md:ml-[240px] min-h-dvh overflow-y-auto px-4 py-6 md:px-8 md:py-8"
             style={{ backgroundColor: "#080808" }}
           >
             <div className="max-w-5xl">{children}</div>

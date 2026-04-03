@@ -37,7 +37,7 @@ export default function HistoryPage() {
 
         <div className="rounded-xl border border-border bg-card/50 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-[600px]">
               <thead>
                 <tr className="border-b border-border">
                   <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3 font-mono">

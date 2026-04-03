@@ -191,7 +191,7 @@ export default function SimulatePage() {
             </div>
 
             {/* Amount + Action Type */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label
                   className="font-mono tracking-[0.06em]"
@@ -218,7 +218,7 @@ export default function SimulatePage() {
                     className="absolute right-3 top-1/2 -translate-y-1/2 font-mono"
                     style={{ fontSize: "11px", color: "#444" }}
                   >
-                    HBAR
+                    USDC
                   </span>
                 </div>
               </div>
@@ -439,7 +439,7 @@ export default function SimulatePage() {
                 >
                   {[
                     { label: "Target", value: form.target, mono: true },
-                    { label: "Amount", value: `${form.amount} HBAR`, mono: true },
+                    { label: "Amount", value: `${form.amount} USDC`, mono: true },
                     { label: "Action", value: actionTypes.find((a) => a.value === form.action)?.label || form.action, mono: true },
                     { label: "Risk Score", value: String(result.score), mono: true, amber: true },
                   ].map((row) => (

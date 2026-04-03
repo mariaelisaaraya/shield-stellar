@@ -138,7 +138,7 @@ export default function HomePage() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full min-w-[600px]">
             <thead>
               <tr style={{ borderBottom: "1px solid #1a1a1a" }}>
                 {["Agent", "Target", "Score", "Verdict", "Time"].map((h) => (
