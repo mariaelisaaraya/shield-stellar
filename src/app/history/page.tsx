@@ -2,18 +2,19 @@
 
 import { motion } from "framer-motion";
 import { VerdictBadge } from "@/components/demos/VerdictBadge";
+import { AgentIdentity } from "@/components/demos/AgentIdentity";
 
 type Verdict = "ALLOW" | "WARN" | "BLOCK";
 
 const mockHistory = [
-  { id: "1", agentId: "PaymentBot-v2", target: "0x1a2B...9f4E", score: 92, verdict: "ALLOW" as Verdict, reason: "Low value transfer", timestamp: "2026-04-03 14:32" },
-  { id: "2", agentId: "SwapAgent-01", target: "0x7cD3...2a1B", score: 67, verdict: "WARN" as Verdict, reason: "Swap requires review", timestamp: "2026-04-03 14:28" },
-  { id: "3", agentId: "PaymentBot-v2", target: "0x3eF1...8c7D", score: 34, verdict: "BLOCK" as Verdict, reason: "Unknown recipient", timestamp: "2026-04-03 14:15" },
-  { id: "4", agentId: "StakeManager", target: "0x9bA4...1e3F", score: 88, verdict: "ALLOW" as Verdict, reason: "Known target address", timestamp: "2026-04-03 13:55" },
-  { id: "5", agentId: "SwapAgent-01", target: "0x5dE2...6b8A", score: 45, verdict: "BLOCK" as Verdict, reason: "High value swap", timestamp: "2026-04-03 13:41" },
-  { id: "6", agentId: "BridgeBot-v1", target: "0x2fC8...4d9E", score: 73, verdict: "WARN" as Verdict, reason: "Elevated amount", timestamp: "2026-04-03 13:22" },
-  { id: "7", agentId: "PaymentBot-v2", target: "0x8aD6...7f2C", score: 95, verdict: "ALLOW" as Verdict, reason: "Low value transfer", timestamp: "2026-04-03 12:58" },
-  { id: "8", agentId: "StakeManager", target: "0x4bE9...3a5D", score: 21, verdict: "BLOCK" as Verdict, reason: "Flagged address", timestamp: "2026-04-03 12:30" },
+  { id: "1", agentId: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045", agentAddress: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045", target: "0x1a2B...9f4E", score: 92, verdict: "ALLOW" as Verdict, reason: "Low value transfer", timestamp: "2026-04-03 14:32" },
+  { id: "2", agentId: "SwapAgent-01", agentAddress: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045", target: "0x7cD3...2a1B", score: 67, verdict: "WARN" as Verdict, reason: "Swap requires review", timestamp: "2026-04-03 14:28" },
+  { id: "3", agentId: "PaymentBot-v2", agentAddress: "0x742d35Cc6634C0532925a3b844Bc9e7595f1f1A2", target: "0x3eF1...8c7D", score: 34, verdict: "BLOCK" as Verdict, reason: "Unknown recipient", timestamp: "2026-04-03 14:15" },
+  { id: "4", agentId: "StakeManager", agentAddress: "0xBE0eB53F46cd790Cd13851d5EFf43D12404d33E8", target: "0x9bA4...1e3F", score: 88, verdict: "ALLOW" as Verdict, reason: "Known target address", timestamp: "2026-04-03 13:55" },
+  { id: "5", agentId: "SwapAgent-01", agentAddress: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045", target: "0x5dE2...6b8A", score: 45, verdict: "BLOCK" as Verdict, reason: "High value swap", timestamp: "2026-04-03 13:41" },
+  { id: "6", agentId: "BridgeBot-v1", agentAddress: "0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B", target: "0x2fC8...4d9E", score: 73, verdict: "WARN" as Verdict, reason: "Elevated amount", timestamp: "2026-04-03 13:22" },
+  { id: "7", agentId: "PaymentBot-v2", agentAddress: "0x742d35Cc6634C0532925a3b844Bc9e7595f1f1A2", target: "0x8aD6...7f2C", score: 95, verdict: "ALLOW" as Verdict, reason: "Low value transfer", timestamp: "2026-04-03 12:58" },
+  { id: "8", agentId: "StakeManager", agentAddress: "0xBE0eB53F46cd790Cd13851d5EFf43D12404d33E8", target: "0x4bE9...3a5D", score: 21, verdict: "BLOCK" as Verdict, reason: "Flagged address", timestamp: "2026-04-03 12:30" },
 ];
 
 const columns = [
@@ -86,8 +87,8 @@ export default function HistoryPage() {
                     (e.currentTarget.style.backgroundColor = "transparent")
                   }
                 >
-                  <td className="px-5 py-3 text-sm font-medium" style={{ color: "#e0e0e0" }}>
-                    {row.agentId}
+                  <td className="px-5 py-3">
+                    <AgentIdentity address={row.agentAddress} />
                   </td>
                   <td className="px-5 py-3 text-sm font-mono" style={{ color: "#555" }}>
                     {row.target}

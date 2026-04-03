@@ -8,7 +8,7 @@ function rpc(url: string | undefined) {
 export const wagmiConfig = createConfig({
   chains: [mainnet, sepolia],
   transports: {
-    [mainnet.id]: rpc(process.env.NEXT_PUBLIC_RPC_MAINNET),
+    [mainnet.id]: http("https://eth.llamarpc.com"),
     [sepolia.id]: rpc(process.env.NEXT_PUBLIC_RPC_SEPOLIA),
   },
   ssr: true,

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight, Bot, Activity, ShieldOff, TrendingUp, TrendingDown } from "lucide-react";
 import { VerdictBadge } from "@/components/demos/VerdictBadge";
+import { AgentIdentity } from "@/components/demos/AgentIdentity";
 
 type Verdict = "ALLOW" | "WARN" | "BLOCK";
 
@@ -35,11 +36,11 @@ const stats = [
 ];
 
 const recentAssessments = [
-  { agent: "PaymentBot-v2", target: "0x1a2B...9f4E", score: 92, verdict: "ALLOW" as Verdict, time: "2 min ago" },
-  { agent: "SwapAgent-01", target: "0x7cD3...2a1B", score: 67, verdict: "WARN" as Verdict, time: "6 min ago" },
-  { agent: "PaymentBot-v2", target: "0x3eF1...8c7D", score: 34, verdict: "BLOCK" as Verdict, time: "19 min ago" },
-  { agent: "StakeManager", target: "0x9bA4...1e3F", score: 88, verdict: "ALLOW" as Verdict, time: "39 min ago" },
-  { agent: "SwapAgent-01", target: "0x5dE2...6b8A", score: 45, verdict: "BLOCK" as Verdict, time: "53 min ago" },
+  { agent: "PaymentBot-v2", agentAddress: "0x742d35Cc6634C0532925a3b844Bc9e7595f1f1A2", target: "0x1a2B...9f4E", score: 92, verdict: "ALLOW" as Verdict, time: "2 min ago" },
+  { agent: "SwapAgent-01", agentAddress: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045", target: "0x7cD3...2a1B", score: 67, verdict: "WARN" as Verdict, time: "6 min ago" },
+  { agent: "PaymentBot-v2", agentAddress: "0x742d35Cc6634C0532925a3b844Bc9e7595f1f1A2", target: "0x3eF1...8c7D", score: 34, verdict: "BLOCK" as Verdict, time: "19 min ago" },
+  { agent: "StakeManager", agentAddress: "0xBE0eB53F46cd790Cd13851d5EFf43D12404d33E8", target: "0x9bA4...1e3F", score: 88, verdict: "ALLOW" as Verdict, time: "39 min ago" },
+  { agent: "SwapAgent-01", agentAddress: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045", target: "0x5dE2...6b8A", score: 45, verdict: "BLOCK" as Verdict, time: "53 min ago" },
 ];
 
 const container = {
@@ -176,8 +177,8 @@ export default function HomePage() {
                     (e.currentTarget.style.backgroundColor = "transparent")
                   }
                 >
-                  <td className="px-5 py-3 text-sm font-medium" style={{ color: "#e0e0e0" }}>
-                    {row.agent}
+                  <td className="px-5 py-3">
+                    <AgentIdentity address={row.agentAddress} />
                   </td>
                   <td className="px-5 py-3 text-sm font-mono" style={{ color: "#555" }}>
                     {row.target}
