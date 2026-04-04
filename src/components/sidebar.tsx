@@ -9,6 +9,7 @@ import {
   Shield,
   Zap,
   Clock,
+  Link2,
   Menu,
   X,
 } from "lucide-react";
@@ -26,6 +27,7 @@ const navItems = [
   { href: "/policy", label: "Policy", icon: Shield },
   { href: "/simulate", label: "Simulate", icon: Zap },
   { href: "/history", label: "History", icon: Clock },
+  { href: "/workflow", label: "CRE Workflow", icon: Link2 },
 ];
 
 function RadarIcon({ className }: { className?: string }) {
