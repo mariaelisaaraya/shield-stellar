@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { VerdictBadge } from "@/components/demos/VerdictBadge";
-import { ArrowRight, ShieldAlert, ShieldOff, Check, X, Loader2, CheckCircle2 } from "lucide-react";
+import { ArrowRight, ShieldAlert, ShieldOff, Check, X, Loader2, CheckCircle2, Activity } from "lucide-react";
 import { useAccount, useWriteContract } from "wagmi";
 import { assessmentRegistryConfig } from "@/lib/contracts";
 
@@ -605,6 +605,21 @@ export default function SimulatePage() {
                     Assessment registered on Hedera ✓ tx: {txHash.slice(0, 6)}...{txHash.slice(-4)}
                   </motion.div>
                 )}
+                {isRegistered && txHash && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.25 }}
+                  >
+                    <button
+                      onClick={() => { setResult(null); setOperatorDecision(null); resetRegister(); setForm({ agent: "", target: "", amount: "", action: "transfer" }); }}
+                      className="flex h-10 w-full items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors hover:opacity-90"
+                      style={{ backgroundColor: "#1a1a1a", color: "#888", border: "1px solid #333" }}
+                    >
+                      <Activity className="w-4 h-4" />New Assessment
+                    </button>
+                  </motion.div>
+                )}
                 {registerError && (
                   <motion.div
                     initial={{ opacity: 0 }}
@@ -667,7 +682,7 @@ export default function SimulatePage() {
                   style={{ backgroundColor: "#111", border: "1px solid #1a1a1a" }}
                 >
                   <p className="text-sm mb-4" style={{ color: "#999" }}>
-                    Esta accion tiene riesgo <span className="text-amber-400 font-semibold">medio</span>. Ledger recomienda aprobacion humana antes de mover fondos.
+                    This action has <span className="text-amber-400 font-semibold">medium</span> risk. Ledger requires human approval before moving funds.
                   </p>
                 </div>
 

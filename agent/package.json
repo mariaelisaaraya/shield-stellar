@@ -1,0 +1,19 @@
+{
+  "name": "aegis-pay-agent",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "tsx src/agent.ts",
+    "dev": "tsx watch src/agent.ts"
+  },
+  "dependencies": {
+    "@hashgraph/sdk": "^2.81.0",
+    "dotenv": "^16.4.5",
+    "hedera-agent-kit": "^3.8.2",
+    "viem": "^2.21.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}
