@@ -12,6 +12,8 @@ import {
   Menu,
   X,
 } from "lucide-react";
+import { useAccount, useConnect, useEnsName, useEnsAvatar } from "wagmi";
+import { injected } from "wagmi/connectors";
 import { cn } from "@/lib/utils";
 
 function shortAddress(addr: string) {
@@ -38,43 +40,34 @@ function RadarIcon({ className }: { className?: string }) {
 }
 
 function WalletSection() {
-  const [account, setAccount] = useState<string | null>(null);
+  const { address, isConnected } = useAccount();
+  const { connect } = useConnect();
+  const { data: ensName } = useEnsName({ address, chainId: 1 });
+  const { data: ensAvatar } = useEnsAvatar({ name: ensName ?? undefined, chainId: 1 });
 
-  const connectWallet = async () => {
-    if (typeof window.ethereum !== "undefined") {
-      try {
-        const accounts = await window.ethereum.request({
-          method: "eth_requestAccounts",
-        });
-        setAccount(accounts[0]);
-      } catch (error) {
-        console.error("Error connecting wallet:", error);
-      }
-    } else {
-      alert("MetaMask not found. Please install MetaMask.");
-    }
-  };
-
-  const disconnectWallet = () => {
-    setAccount(null);
-  };
-
-  if (account) {
+  if (isConnected && address) {
     return (
-      <button
-        onClick={disconnectWallet}
-        className="flex items-center gap-2 px-1 font-mono text-[12px] hover:opacity-70 transition-opacity"
-        style={{ color: "#888" }}
-      >
-        <span className="block h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
-        {shortAddress(account)}
-      </button>
+      <div className="flex items-center gap-2 px-1">
+        {ensAvatar ? (
+          <img src={ensAvatar} alt="" className="h-6 w-6 rounded-full shrink-0" />
+        ) : (
+          <span className="block h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
+        )}
+        <div className="flex flex-col">
+          {ensName && (
+            <span className="text-[12px] font-medium" style={{ color: "#ccc" }}>{ensName}</span>
+          )}
+          <span className="font-mono text-[11px]" style={{ color: "#666" }}>
+            {shortAddress(address)}
+          </span>
+        </div>
+      </div>
     );
   }
 
   return (
     <button
-      onClick={connectWallet}
+      onClick={() => connect({ connector: injected() })}
       className="group relative inline-flex w-full rounded-md transition-shadow hover:shadow-[0_0_20px_rgba(37,99,235,0.25)]"
     >
       <span

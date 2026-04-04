@@ -11,7 +11,7 @@ export const wagmiConfig = createConfig({
   chains: [mainnet, sepolia, hederaTestnet],
   connectors: [injected()],
   transports: {
-    [mainnet.id]: http("https://eth.llamarpc.com"),
+    [mainnet.id]: http(),
     [sepolia.id]: rpc(process.env.NEXT_PUBLIC_RPC_SEPOLIA),
     [hederaTestnet.id]: http("https://testnet.hashio.io/api"),
   },

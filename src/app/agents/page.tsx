@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Bot } from "lucide-react";
 import { useAccount, useWriteContract } from "wagmi";
 import { agentRegistryConfig } from "@/lib/contracts";
 
@@ -17,24 +17,27 @@ const inputStyle = {
 
 export default function AgentsPage() {
   const { address, isConnected } = useAccount();
-  const { data: hash, writeContract, isPending, isSuccess, error: writeError, reset } = useWriteContract();
+  const { data: hash, writeContract, isPending, isSuccess, error: writeError, reset: resetWrite } = useWriteContract();
 
   const [form, setForm] = useState({
+    agent: "",
     name: "",
     description: "",
     metadataURI: "",
   });
+  const [error, setError] = useState<string | null>(null);
   const [walletWarning, setWalletWarning] = useState(false);
 
   useEffect(() => {
     if (isSuccess) {
-      setForm({ name: "", description: "", metadataURI: "" });
+      setForm({ agent: "", name: "", description: "", metadataURI: "" });
     }
   }, [isSuccess]);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    reset();
+    setError(null);
+    resetWrite();
     setWalletWarning(false);
 
     if (!isConnected || !address) {
@@ -42,11 +45,21 @@ export default function AgentsPage() {
       return;
     }
 
+    const agentAddr = (form.agent || address) as `0x${string}`;
+
     writeContract({
       ...agentRegistryConfig,
       functionName: "registerAgent",
-      args: [address, form.metadataURI],
+      args: [agentAddr, form.metadataURI],
+    }, {
+      onError: (err) => setError(err.message?.split("\n")[0] || "Transaction failed"),
     });
+  }
+
+  function handleReset() {
+    resetWrite();
+    setError(null);
+    setForm({ agent: "", name: "", description: "", metadataURI: "" });
   }
 
   return (
@@ -77,6 +90,25 @@ export default function AgentsPage() {
         style={{ backgroundColor: "#0f0f0f", border: "1px solid #1a1a1a" }}
       >
         <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="space-y-2">
+            <label
+              className="font-mono tracking-[0.06em]"
+              style={{ fontSize: "11px", color: "#444" }}
+            >
+              AGENT ADDRESS
+            </label>
+            <input
+              value={form.agent}
+              placeholder={address || "0x..."}
+              onChange={(e) => setForm((f) => ({ ...f, agent: e.target.value }))}
+              className={inputClass}
+              style={inputStyle}
+            />
+            <p className="text-xs" style={{ color: "#444" }}>
+              Leave empty to use your connected wallet
+            </p>
+          </div>
+
           <div className="space-y-2">
             <label
               className="font-mono tracking-[0.06em]"
@@ -144,6 +176,12 @@ export default function AgentsPage() {
         </form>
       </div>
 
+      {error && (
+        <div className="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-400">
+          {error}
+        </div>
+      )}
+
       {/* Wallet warning */}
       <AnimatePresence>
         {walletWarning && (
@@ -169,6 +207,26 @@ export default function AgentsPage() {
           >
             <CheckCircle2 className="w-4 h-4 shrink-0" />
             Agent registered on Hedera ✓ tx: {hash.slice(0, 6)}...{hash.slice(-4)}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Register another */}
+      <AnimatePresence>
+        {isSuccess && hash && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+            className="mt-4"
+          >
+            <button
+              onClick={handleReset}
+              className="flex h-10 w-full items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors hover:opacity-90"
+              style={{ backgroundColor: "#1a1a1a", color: "#888", border: "1px solid #333" }}
+            >
+              <Bot className="w-4 h-4" />Register Another Agent
+            </button>
           </motion.div>
         )}
       </AnimatePresence>
