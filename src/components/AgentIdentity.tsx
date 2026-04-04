@@ -29,10 +29,10 @@ export function AgentIdentity({ address }: { address: string }) {
         ) : (
           <span
             className="w-5 h-5 rounded-full inline-block"
-            style={{ backgroundColor: "#1a1a1a", border: "1px solid #333" }}
+            style={{ backgroundColor: "#ebebed", border: "1px solid #d4d4d8" }}
           />
         )}
-        <span style={{ color: "#8be9fd" }}>{ensName}</span>
+        <span style={{ color: "#5b5cf6" }}>{ensName}</span>
       </span>
     );
   }

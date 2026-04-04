@@ -48,14 +48,14 @@ export default function PolicyPage() {
       {/* Header */}
       <div className="mb-8">
         <span
-          className="block font-mono tracking-[0.12em] mb-2"
-          style={{ fontSize: "11px", color: "#444" }}
+          className="block font-mono tracking-[0.12em] mb-2 text-xs"
+          style={{ color: "#a1a1aa" }}
         >
           POLICY &middot; RISK THRESHOLDS
         </span>
         <h1
-          className="text-2xl font-semibold tracking-tight"
-          style={{ color: "#f0f0f0" }}
+          className="text-3xl font-bold tracking-tight"
+          style={{ color: "#0f0f10" }}
         >
           Configure Policy
         </h1>
@@ -64,16 +64,16 @@ export default function PolicyPage() {
       {/* Policy card */}
       <div
         className="rounded-xl p-6 space-y-8"
-        style={{ backgroundColor: "#0f0f0f", border: "1px solid #1a1a1a" }}
+        style={{ backgroundColor: "#ffffff", border: "1px solid #ebebed", borderRadius: "16px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}
       >
         {/* Bar visualization */}
         <div className="space-y-3">
-          <div className="flex items-center justify-between font-mono" style={{ fontSize: "11px", color: "#444" }}>
+          <div className="flex items-center justify-between font-mono" style={{ fontSize: "10px", color: "#a1a1aa" }}>
             <span>0</span>
-            <span className="tracking-[0.08em]">SCORE RANGE</span>
+            <span className="tracking-[0.12em]">SCORE RANGE</span>
             <span>100</span>
           </div>
-          <div className="h-3 rounded-full overflow-hidden flex" style={{ backgroundColor: "#141414" }}>
+          <div className="h-3 rounded-full overflow-hidden flex" style={{ backgroundColor: "#f7f7f8" }}>
             <div
               className="bg-red-500/50 transition-all duration-300"
               style={{ width: `${thresholds.warn}%` }}
@@ -99,12 +99,12 @@ export default function PolicyPage() {
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <label
-                className="font-mono tracking-[0.06em]"
-                style={{ fontSize: "11px", color: "#444" }}
+                className="font-mono tracking-[0.12em]"
+                style={{ fontSize: "10px", color: "#a1a1aa" }}
               >
                 ALLOW THRESHOLD
               </label>
-              <span className="text-sm font-mono text-emerald-400">
+              <span className="text-sm font-mono" style={{ color: "#166534" }}>
                 &ge; {thresholds.allow}
               </span>
             </div>
@@ -120,20 +120,20 @@ export default function PolicyPage() {
                   allow: Math.max(v, t.warn + 1),
                 }));
               }}
-              className="w-full h-1.5 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-emerald-400"
-              style={{ backgroundColor: "#1a1a1a" }}
+              className="w-full h-1.5 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-emerald-500"
+              style={{ backgroundColor: "#ebebed" }}
             />
           </div>
 
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <label
-                className="font-mono tracking-[0.06em]"
-                style={{ fontSize: "11px", color: "#444" }}
+                className="font-mono tracking-[0.12em]"
+                style={{ fontSize: "10px", color: "#a1a1aa" }}
               >
                 WARN THRESHOLD
               </label>
-              <span className="text-sm font-mono text-amber-400">
+              <span className="text-sm font-mono" style={{ color: "#854d0e" }}>
                 &ge; {thresholds.warn}
               </span>
             </div>
@@ -149,8 +149,8 @@ export default function PolicyPage() {
                   warn: Math.min(v, t.allow - 1),
                 }));
               }}
-              className="w-full h-1.5 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-amber-400"
-              style={{ backgroundColor: "#1a1a1a" }}
+              className="w-full h-1.5 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-amber-500"
+              style={{ backgroundColor: "#ebebed" }}
             />
           </div>
         </div>
@@ -159,8 +159,10 @@ export default function PolicyPage() {
         <button
           onClick={handleSave}
           disabled={isPending}
-          className="flex h-10 w-full items-center justify-center gap-2 rounded-md text-sm font-medium text-white transition-colors hover:opacity-90 disabled:opacity-50"
-          style={{ backgroundColor: "#2563EB" }}
+          className="flex h-10 w-full items-center justify-center gap-2 text-sm font-semibold text-white transition-colors disabled:opacity-50"
+          style={{ backgroundColor: "#5b5cf6", borderRadius: "10px" }}
+          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#4f46e5")}
+          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#5b5cf6")}
         >
           {isPending ? (
             "Saving..."
@@ -180,7 +182,8 @@ export default function PolicyPage() {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, ease: "easeOut" }}
-            className="mt-4 flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm font-medium text-emerald-400"
+            className="mt-4 flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-medium"
+            style={{ backgroundColor: "#f0fdf4", color: "#166534", border: "1px solid #bbf7d0" }}
           >
             <CheckCircle2 className="w-4 h-4 shrink-0" />
             Policy saved on Hedera ✓ tx: {txHash.slice(0, 6)}...{txHash.slice(-4)}
@@ -195,7 +198,8 @@ export default function PolicyPage() {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, ease: "easeOut" }}
-            className="mt-4 flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-400"
+            className="mt-4 flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-medium"
+            style={{ backgroundColor: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca" }}
           >
             {writeError.message.length > 120
               ? writeError.message.slice(0, 120) + "..."
@@ -207,15 +211,15 @@ export default function PolicyPage() {
       {/* Current policy summary */}
       <div
         className="mt-4 rounded-xl p-5"
-        style={{ backgroundColor: "#0a0a0a", border: "1px solid #1a1a1a" }}
+        style={{ backgroundColor: "#ffffff", border: "1px solid #ebebed" }}
       >
         <span
-          className="block font-mono tracking-[0.08em] mb-3"
-          style={{ fontSize: "11px", color: "#444" }}
+          className="block font-mono tracking-[0.12em] mb-3"
+          style={{ fontSize: "10px", color: "#a1a1aa" }}
         >
           ACTIVE POLICY
         </span>
-        <div className="space-y-1.5 font-mono text-xs leading-relaxed" style={{ color: "#888" }}>
+        <div className="space-y-1.5 font-mono text-xs leading-relaxed" style={{ color: "#52525b" }}>
           <div className="flex items-center gap-2">
             <span className="block h-1.5 w-1.5 rounded-full bg-red-500 shrink-0" />
             Score &lt; {thresholds.warn} → BLOCK

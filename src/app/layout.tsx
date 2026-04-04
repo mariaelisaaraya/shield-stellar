@@ -1,12 +1,20 @@
 import type { Metadata } from "next";
-import { GeistMono } from "geist/font/mono";
-import { GeistSans } from "geist/font/sans";
+import { Inter, Inconsolata } from "next/font/google";
 
 import { Sidebar } from "@/components/sidebar";
-import { AgentInfo } from "@/components/agent-info";
 import { Providers } from "@/components/providers";
 
 import "./globals.css";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+});
+
+const inconsolata = Inconsolata({
+  subsets: ["latin"],
+  variable: "--font-mono",
+});
 
 export const metadata: Metadata = {
   title: "AegisPay",
@@ -19,16 +27,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es" className="dark" suppressHydrationWarning>
+    <html lang="es" suppressHydrationWarning>
       <body
-        className={`${GeistSans.variable} ${GeistMono.variable} min-h-dvh font-sans antialiased bg-background text-foreground`}
+        className={`${inter.variable} ${inconsolata.variable} min-h-dvh antialiased`}
+        style={{ backgroundColor: "#f7f7f8", color: "#0f0f10" }}
       >
         <Providers>
-          <AgentInfo />
           <Sidebar />
           <main
             className="md:ml-[240px] min-h-dvh overflow-y-auto px-4 py-6 md:px-8 md:py-8"
-            style={{ backgroundColor: "#080808" }}
+            style={{ backgroundColor: "#f7f7f8" }}
           >
             <div className="max-w-5xl">{children}</div>
           </main>

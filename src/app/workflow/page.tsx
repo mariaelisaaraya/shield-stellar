@@ -55,18 +55,18 @@ interface WorkflowResult {
 
 function StatCard({ label, value, sub, color }: { label: string; value: string | number; sub?: string; color: string }) {
   return (
-    <div className="rounded-xl p-4" style={{ backgroundColor: "#0f0f0f", border: "1px solid #1a1a1a" }}>
-      <p className="font-mono text-[10px] tracking-[0.1em] mb-1" style={{ color: "#444" }}>{label}</p>
+    <div className="rounded-xl p-4" style={{ backgroundColor: "#ffffff", border: "1px solid #ebebed" }}>
+      <p className="font-mono text-[10px] tracking-[0.1em] mb-1" style={{ color: "#a1a1aa" }}>{label}</p>
       <p className="text-2xl font-bold font-mono" style={{ color }}>{value}</p>
-      {sub && <p className="text-xs mt-0.5" style={{ color: "#555" }}>{sub}</p>}
+      {sub && <p className="text-xs mt-0.5" style={{ color: "#52525b" }}>{sub}</p>}
     </div>
   );
 }
 
 function VerdictIcon({ verdict }: { verdict: Verdict }) {
-  if (verdict === "ALLOW") return <ShieldCheck className="w-4 h-4 text-emerald-400" />;
-  if (verdict === "WARN") return <ShieldAlert className="w-4 h-4 text-amber-400" />;
-  return <ShieldOff className="w-4 h-4 text-red-400" />;
+  if (verdict === "ALLOW") return <ShieldCheck className="w-4 h-4" style={{ color: "#166534" }} />;
+  if (verdict === "WARN") return <ShieldAlert className="w-4 h-4" style={{ color: "#854d0e" }} />;
+  return <ShieldOff className="w-4 h-4" style={{ color: "#dc2626" }} />;
 }
 
 export default function WorkflowPage() {
@@ -95,21 +95,21 @@ export default function WorkflowPage() {
       <div className="max-w-xl mx-auto">
         {/* Header */}
         <div className="flex items-center gap-3 mb-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg" style={{ backgroundColor: "#141414", border: "1px solid #1a1a1a" }}>
-            <Link2 className="w-4 h-4" style={{ color: "#2563EB" }} />
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg" style={{ backgroundColor: "#efefff", border: "1px solid #c7d2fe" }}>
+            <Link2 className="w-4 h-4" style={{ color: "#5b5cf6" }} />
           </div>
           <div>
-            <h1 className="text-xl font-semibold tracking-tight" style={{ color: "#f0f0f0" }}>
+            <h1 className="text-xl font-semibold tracking-tight" style={{ color: "#0f0f10" }}>
               CRE Workflow
             </h1>
-            <p className="text-sm" style={{ color: "#555" }}>Decentralized risk assessment on Chainlink DON</p>
+            <p className="text-sm" style={{ color: "#52525b" }}>Decentralized risk assessment on Chainlink DON</p>
           </div>
         </div>
 
         {/* Chainlink badge */}
-        <div className="mt-6 mb-6 flex items-center gap-2 rounded-lg px-3 py-2" style={{ backgroundColor: "#0a1628", border: "1px solid #1a2a4a" }}>
-          <Server className="w-3.5 h-3.5" style={{ color: "#375BD2" }} />
-          <span className="text-xs font-mono" style={{ color: "#6B8AFF" }}>
+        <div className="mt-6 mb-6 flex items-center gap-2 rounded-lg px-3 py-2" style={{ backgroundColor: "#efefff", border: "1px solid #c7d2fe" }}>
+          <Server className="w-3.5 h-3.5" style={{ color: "#5b5cf6" }} />
+          <span className="text-xs font-mono" style={{ color: "#5b5cf6" }}>
             Powered by Chainlink Runtime Environment (CRE)
           </span>
           <a
@@ -118,23 +118,23 @@ export default function WorkflowPage() {
             rel="noopener noreferrer"
             className="ml-auto"
           >
-            <ExternalLink className="w-3 h-3" style={{ color: "#375BD2" }} />
+            <ExternalLink className="w-3 h-3" style={{ color: "#5b5cf6" }} />
           </a>
         </div>
 
         {/* How it works */}
-        <div className="rounded-xl p-5 mb-6" style={{ backgroundColor: "#0f0f0f", border: "1px solid #1a1a1a" }}>
-          <p className="font-mono text-[10px] tracking-[0.1em] mb-3" style={{ color: "#444" }}>HOW IT WORKS</p>
-          <div className="flex flex-wrap items-center gap-2 text-xs font-mono" style={{ color: "#888" }}>
-            <span className="rounded px-2 py-1" style={{ backgroundColor: "#141414", color: "#6B8AFF" }}>Cron Trigger</span>
-            <span style={{ color: "#333" }}>-&gt;</span>
-            <span className="rounded px-2 py-1" style={{ backgroundColor: "#141414", color: "#f59e0b" }}>HTTP: HBAR Price</span>
-            <span style={{ color: "#333" }}>-&gt;</span>
-            <span className="rounded px-2 py-1" style={{ backgroundColor: "#141414", color: "#22c55e" }}>Risk Scoring</span>
-            <span style={{ color: "#333" }}>-&gt;</span>
-            <span className="rounded px-2 py-1" style={{ backgroundColor: "#141414", color: "#ef4444" }}>Verdict</span>
+        <div className="rounded-xl p-5 mb-6" style={{ backgroundColor: "#ffffff", border: "1px solid #ebebed" }}>
+          <p className="font-mono text-[10px] tracking-[0.1em] mb-3" style={{ color: "#a1a1aa" }}>HOW IT WORKS</p>
+          <div className="flex flex-wrap items-center gap-2 text-xs font-mono" style={{ color: "#52525b" }}>
+            <span className="rounded px-2 py-1" style={{ backgroundColor: "#efefff", color: "#5b5cf6" }}>Cron Trigger</span>
+            <span style={{ color: "#d4d4d8" }}>-&gt;</span>
+            <span className="rounded px-2 py-1" style={{ backgroundColor: "#fffbeb", color: "#854d0e" }}>HTTP: HBAR Price</span>
+            <span style={{ color: "#d4d4d8" }}>-&gt;</span>
+            <span className="rounded px-2 py-1" style={{ backgroundColor: "#f0fdf4", color: "#166534" }}>Risk Scoring</span>
+            <span style={{ color: "#d4d4d8" }}>-&gt;</span>
+            <span className="rounded px-2 py-1" style={{ backgroundColor: "#fef2f2", color: "#dc2626" }}>Verdict</span>
           </div>
-          <p className="text-xs mt-3 leading-relaxed" style={{ color: "#555" }}>
+          <p className="text-xs mt-3 leading-relaxed" style={{ color: "#52525b" }}>
             The workflow runs on a Chainlink Decentralized Oracle Network (DON).
             Multiple nodes fetch the HBAR/USD price, reach consensus, then score each
             pending AI agent transaction using AegisPay&apos;s risk engine.
@@ -145,8 +145,10 @@ export default function WorkflowPage() {
         <button
           onClick={runSimulation}
           disabled={loading}
-          className="flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90 disabled:opacity-50 mb-6"
-          style={{ backgroundColor: "#375BD2" }}
+          className="flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold text-white transition-all disabled:opacity-50 mb-6"
+          style={{ backgroundColor: "#5b5cf6" }}
+          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#4f46e5")}
+          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#5b5cf6")}
         >
           {loading ? (
             <>
@@ -162,7 +164,7 @@ export default function WorkflowPage() {
         </button>
 
         {error && (
-          <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-400">
+          <div className="mb-4 rounded-lg px-4 py-2 text-sm" style={{ backgroundColor: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca" }}>
             {error}
           </div>
         )}
@@ -178,22 +180,22 @@ export default function WorkflowPage() {
               className="space-y-4"
             >
               {/* Live price + execution info */}
-              <div className="flex items-center justify-between rounded-xl px-4 py-3" style={{ backgroundColor: "#0a1628", border: "1px solid #1a2a4a" }}>
+              <div className="flex items-center justify-between rounded-xl px-4 py-3" style={{ backgroundColor: "#efefff", border: "1px solid #c7d2fe" }}>
                 <div className="flex items-center gap-2">
-                  <DollarSign className="w-4 h-4" style={{ color: "#6B8AFF" }} />
-                  <span className="text-sm font-mono" style={{ color: "#6B8AFF" }}>
+                  <DollarSign className="w-4 h-4" style={{ color: "#5b5cf6" }} />
+                  <span className="text-sm font-mono" style={{ color: "#5b5cf6" }}>
                     HBAR/USD: ${result.hbarPriceUsd.toFixed(4)}
                   </span>
                 </div>
-                <span className="text-[10px] font-mono" style={{ color: "#444" }}>
+                <span className="text-[10px] font-mono" style={{ color: "#a1a1aa" }}>
                   {new Date(result.timestamp).toLocaleTimeString()}
                 </span>
               </div>
 
               {result.chainlinkFeed && (
-                <div className="flex items-center gap-2 rounded-lg px-3 py-2" style={{ backgroundColor: "#0f1a0f", border: "1px solid #1a2a1a" }}>
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-                  <span className="text-[11px] font-mono" style={{ color: "#4ade80" }}>
+                <div className="flex items-center gap-2 rounded-lg px-3 py-2" style={{ backgroundColor: "#f0fdf4", border: "1px solid #bbf7d0" }}>
+                  <ShieldCheck className="w-3.5 h-3.5" style={{ color: "#166534" }} />
+                  <span className="text-[11px] font-mono" style={{ color: "#166534" }}>
                     Price from Chainlink AggregatorV3Interface on-chain
                   </span>
                   <a
@@ -202,17 +204,17 @@ export default function WorkflowPage() {
                     rel="noopener noreferrer"
                     className="ml-auto"
                   >
-                    <ExternalLink className="w-3 h-3 text-emerald-600" />
+                    <ExternalLink className="w-3 h-3" style={{ color: "#166534" }} />
                   </a>
                 </div>
               )}
 
               {/* Stats grid */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <StatCard label="ASSESSED" value={result.summary.totalAssessed} color="#f0f0f0" />
-                <StatCard label="ALLOWED" value={result.summary.allowed} color="#22c55e" />
-                <StatCard label="WARNED" value={result.summary.warned} color="#f59e0b" />
-                <StatCard label="BLOCKED" value={result.summary.blocked} color="#ef4444" />
+                <StatCard label="ASSESSED" value={result.summary.totalAssessed} color="#0f0f10" />
+                <StatCard label="ALLOWED" value={result.summary.allowed} color="#166534" />
+                <StatCard label="WARNED" value={result.summary.warned} color="#854d0e" />
+                <StatCard label="BLOCKED" value={result.summary.blocked} color="#dc2626" />
               </div>
 
               {/* Exposure */}
@@ -220,20 +222,20 @@ export default function WorkflowPage() {
                 <StatCard
                   label="TOTAL EXPOSURE"
                   value={`$${result.summary.totalUsdExposure.toFixed(2)}`}
-                  color="#f0f0f0"
+                  color="#0f0f10"
                 />
                 <StatCard
                   label="VALUE BLOCKED"
                   value={`$${result.summary.blockedUsdValue.toFixed(2)}`}
                   sub="protected by AegisPay"
-                  color="#ef4444"
+                  color="#dc2626"
                 />
               </div>
 
               {/* Assessment table */}
-              <div className="rounded-xl overflow-hidden" style={{ border: "1px solid #1a1a1a" }}>
-                <div className="px-4 py-3" style={{ backgroundColor: "#0f0f0f", borderBottom: "1px solid #1a1a1a" }}>
-                  <p className="font-mono text-[10px] tracking-[0.1em]" style={{ color: "#444" }}>
+              <div className="rounded-xl overflow-hidden" style={{ border: "1px solid #ebebed" }}>
+                <div className="px-4 py-3" style={{ backgroundColor: "#f7f7f8", borderBottom: "1px solid #ebebed" }}>
+                  <p className="font-mono text-[10px] tracking-[0.1em]" style={{ color: "#a1a1aa" }}>
                     TRANSACTION ASSESSMENTS
                   </p>
                 </div>
@@ -245,12 +247,12 @@ export default function WorkflowPage() {
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: i * 0.1 }}
                       className="px-4 py-3"
-                      style={{ backgroundColor: "#0a0a0a", borderTop: i > 0 ? "1px solid #1a1a1a" : undefined }}
+                      style={{ backgroundColor: "#ffffff", borderTop: i > 0 ? "1px solid #ebebed" : undefined }}
                     >
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
                           <VerdictIcon verdict={a.verdict} />
-                          <span className="text-sm font-medium" style={{ color: "#f0f0f0" }}>
+                          <span className="text-sm font-medium" style={{ color: "#0f0f10" }}>
                             TX #{i + 1}: {a.action}
                           </span>
                         </div>
@@ -259,20 +261,20 @@ export default function WorkflowPage() {
 
                       <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs font-mono mb-2">
                         <div>
-                          <span style={{ color: "#444" }}>Amount: </span>
-                          <span style={{ color: "#888" }}>{a.amountHbar} HBAR (${a.usdValue.toFixed(2)})</span>
+                          <span style={{ color: "#a1a1aa" }}>Amount: </span>
+                          <span style={{ color: "#52525b" }}>{a.amountHbar} HBAR (${a.usdValue.toFixed(2)})</span>
                         </div>
                         <div>
-                          <span style={{ color: "#444" }}>Score: </span>
+                          <span style={{ color: "#a1a1aa" }}>Score: </span>
                           <span style={{
-                            color: a.verdict === "ALLOW" ? "#22c55e" : a.verdict === "WARN" ? "#f59e0b" : "#ef4444"
+                            color: a.verdict === "ALLOW" ? "#166534" : a.verdict === "WARN" ? "#854d0e" : "#dc2626"
                           }}>
                             {a.riskScore}/100
                           </span>
                         </div>
                         <div className="col-span-2">
-                          <span style={{ color: "#444" }}>Target: </span>
-                          <span style={{ color: "#555" }}>{a.target.slice(0, 10)}...{a.target.slice(-6)}</span>
+                          <span style={{ color: "#a1a1aa" }}>Target: </span>
+                          <span style={{ color: "#52525b" }}>{a.target.slice(0, 10)}...{a.target.slice(-6)}</span>
                         </div>
                       </div>
 
@@ -283,10 +285,10 @@ export default function WorkflowPage() {
                             <span
                               className="mt-1.5 block h-1 w-1 rounded-full shrink-0"
                               style={{
-                                backgroundColor: a.verdict === "ALLOW" ? "#22c55e" : a.verdict === "WARN" ? "#f59e0b" : "#ef4444",
+                                backgroundColor: a.verdict === "ALLOW" ? "#166534" : a.verdict === "WARN" ? "#854d0e" : "#dc2626",
                               }}
                             />
-                            <span className="text-[11px]" style={{ color: "#666" }}>{r}</span>
+                            <span className="text-[11px]" style={{ color: "#52525b" }}>{r}</span>
                           </div>
                         ))}
                       </div>
@@ -296,12 +298,12 @@ export default function WorkflowPage() {
               </div>
 
               {/* Policy info */}
-              <div className="flex items-center justify-between rounded-lg px-4 py-2 text-xs font-mono" style={{ backgroundColor: "#0a0a0a", border: "1px solid #1a1a1a", color: "#555" }}>
+              <div className="flex items-center justify-between rounded-lg px-4 py-2 text-xs font-mono" style={{ backgroundColor: "#efefff", border: "1px solid #c7d2fe", color: "#52525b" }}>
                 <span>Policy Thresholds</span>
                 <span>
-                  <span className="text-emerald-400">ALLOW &lt;{result.policyThresholds.low}</span>{" | "}
-                  <span className="text-amber-400">WARN {result.policyThresholds.low}-{result.policyThresholds.medium}</span>{" | "}
-                  <span className="text-red-400">BLOCK &gt;={result.policyThresholds.medium}</span>
+                  <span style={{ color: "#166534" }}>ALLOW &lt;{result.policyThresholds.low}</span>{" | "}
+                  <span style={{ color: "#854d0e" }}>WARN {result.policyThresholds.low}-{result.policyThresholds.medium}</span>{" | "}
+                  <span style={{ color: "#dc2626" }}>BLOCK &gt;={result.policyThresholds.medium}</span>
                 </span>
               </div>
 
@@ -312,7 +314,7 @@ export default function WorkflowPage() {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-1.5 font-mono hover:underline"
-                  style={{ color: "#555" }}
+                  style={{ color: "#52525b" }}
                 >
                   <ExternalLink className="w-3 h-3" />
                   CRE Documentation

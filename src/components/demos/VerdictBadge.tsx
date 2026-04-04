@@ -2,10 +2,34 @@ import { cn } from "@/lib/utils";
 
 type Verdict = "ALLOW" | "WARN" | "BLOCK";
 
-const styles: Record<Verdict, string> = {
-  ALLOW: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
-  WARN: "bg-amber-500/15 text-amber-400 border-amber-500/30",
-  BLOCK: "bg-red-500/15 text-red-400 border-red-500/30",
+const inlineStyles: Record<Verdict, React.CSSProperties> = {
+  ALLOW: {
+    backgroundColor: "#dcfce7",
+    color: "#166534",
+    border: "none",
+    borderRadius: "999px",
+    padding: "4px 12px",
+    fontSize: "12px",
+    fontWeight: 500,
+  },
+  WARN: {
+    backgroundColor: "#fef9c3",
+    color: "#854d0e",
+    border: "none",
+    borderRadius: "999px",
+    padding: "4px 12px",
+    fontSize: "12px",
+    fontWeight: 500,
+  },
+  BLOCK: {
+    backgroundColor: "#fee2e2",
+    color: "#991b1b",
+    border: "none",
+    borderRadius: "999px",
+    padding: "4px 12px",
+    fontSize: "12px",
+    fontWeight: 500,
+  },
 };
 
 export function VerdictBadge({
@@ -18,10 +42,10 @@ export function VerdictBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-mono font-semibold border tracking-wider",
-        styles[verdict],
+        "inline-flex items-center tracking-wider",
         className,
       )}
+      style={inlineStyles[verdict]}
     >
       {verdict}
     </span>

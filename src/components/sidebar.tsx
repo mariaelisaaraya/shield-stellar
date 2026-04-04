@@ -33,10 +33,10 @@ const navItems = [
 function RadarIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" width="20" height="20" className={className} aria-hidden="true">
-      <circle cx="12" cy="12" r="10" stroke="#2563EB" strokeWidth="1.5" opacity="0.3" />
-      <circle cx="12" cy="12" r="6" stroke="#2563EB" strokeWidth="1.5" opacity="0.5" />
-      <circle cx="12" cy="12" r="2" fill="#2563EB" />
-      <line x1="12" y1="12" x2="12" y2="2" stroke="#2563EB" strokeWidth="1.5" opacity="0.7" />
+      <circle cx="12" cy="12" r="10" stroke="#5b5cf6" strokeWidth="1.5" opacity="0.3" />
+      <circle cx="12" cy="12" r="6" stroke="#5b5cf6" strokeWidth="1.5" opacity="0.5" />
+      <circle cx="12" cy="12" r="2" fill="#5b5cf6" />
+      <line x1="12" y1="12" x2="12" y2="2" stroke="#5b5cf6" strokeWidth="1.5" opacity="0.7" />
     </svg>
   );
 }
@@ -49,17 +49,20 @@ function WalletSection() {
 
   if (isConnected && address) {
     return (
-      <div className="flex items-center gap-2 px-1">
+      <div
+        className="flex items-center gap-2 px-3 py-2 rounded-lg"
+        style={{ backgroundColor: "#f7f7f8", border: "1px solid #ebebed" }}
+      >
         {ensAvatar ? (
           <img src={ensAvatar} alt="" className="h-6 w-6 rounded-full shrink-0" />
         ) : (
-          <span className="block h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
+          <span className="block h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: "#15803d" }} />
         )}
         <div className="flex flex-col">
           {ensName && (
-            <span className="text-[12px] font-medium" style={{ color: "#ccc" }}>{ensName}</span>
+            <span className="text-[12px] font-medium" style={{ color: "#0f0f10" }}>{ensName}</span>
           )}
-          <span className="font-mono text-[11px]" style={{ color: "#666" }}>
+          <span className="font-mono text-[11px]" style={{ color: "#a1a1aa" }}>
             {shortAddress(address)}
           </span>
         </div>
@@ -70,23 +73,12 @@ function WalletSection() {
   return (
     <button
       onClick={() => connect({ connector: injected() })}
-      className="group relative inline-flex w-full rounded-md transition-shadow hover:shadow-[0_0_20px_rgba(37,99,235,0.25)]"
+      className="inline-flex w-full items-center justify-center h-9 rounded-md text-xs font-medium text-white transition-colors"
+      style={{ backgroundColor: "#5b5cf6" }}
+      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#4f46e5")}
+      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#5b5cf6")}
     >
-      <span
-        className="absolute inset-0 rounded-md opacity-80 group-hover:opacity-100 transition-opacity"
-        style={{
-          background: "linear-gradient(135deg, #2563EB, #7C3AED)",
-          padding: "1.5px",
-        }}
-      >
-        <span
-          className="block h-full w-full rounded-[5px]"
-          style={{ backgroundColor: "#0a0a0a" }}
-        />
-      </span>
-      <span className="relative z-10 inline-flex h-9 w-full items-center justify-center text-xs font-medium text-white">
-        Connect Wallet
-      </span>
+      Connect Wallet
     </button>
   );
 }
@@ -99,7 +91,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       {/* Logo */}
       <div className="flex items-center gap-2.5 px-5 pt-6 pb-8">
         <RadarIcon className="w-5 h-5 shrink-0" />
-        <span className="text-sm font-semibold tracking-tight" style={{ color: "#f0f0f0" }}>
+        <span className="text-sm font-bold tracking-tight" style={{ color: "#0f0f10" }}>
           AegisPay
         </span>
       </div>
@@ -107,8 +99,8 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       {/* Section label */}
       <div className="px-5 mb-2">
         <span
-          className="font-mono tracking-[0.1em]"
-          style={{ fontSize: "10px", color: "#444" }}
+          className="font-mono tracking-[0.15em]"
+          style={{ fontSize: "10px", color: "#a1a1aa" }}
         >
           PLATFORM
         </span>
@@ -124,14 +116,24 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
               href={item.href}
               onClick={onNavigate}
               className={cn(
-                "flex items-center gap-3 rounded-md px-3 py-2 text-[13px] transition-colors",
-                active ? "text-white" : "text-[#555] hover:text-[#888]",
+                "flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] transition-colors",
+                active ? "font-medium" : "",
               )}
               style={
                 active
-                  ? { backgroundColor: "#141414", borderLeft: "2px solid #2563EB" }
-                  : { borderLeft: "2px solid transparent" }
+                  ? { backgroundColor: "#efefff", color: "#5b5cf6" }
+                  : { color: "#52525b" }
               }
+              onMouseEnter={(e) => {
+                if (!active) {
+                  e.currentTarget.style.backgroundColor = "#f7f7f8";
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!active) {
+                  e.currentTarget.style.backgroundColor = "transparent";
+                }
+              }}
             >
               <item.icon className="w-4 h-4 shrink-0" />
               {item.label}
@@ -141,7 +143,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       </nav>
 
       {/* Wallet — bottom */}
-      <div className="px-4 pb-5 pt-4" style={{ borderTop: "1px solid #1a1a1a" }}>
+      <div className="px-4 pb-5 pt-4" style={{ borderTop: "1px solid #ebebed" }}>
         <WalletSection />
       </div>
     </>
@@ -156,7 +158,7 @@ export function Sidebar() {
       {/* Desktop sidebar */}
       <aside
         className="hidden md:flex fixed top-0 left-0 h-dvh w-[240px] flex-col z-40"
-        style={{ backgroundColor: "#0a0a0a", borderRight: "1px solid #1a1a1a" }}
+        style={{ backgroundColor: "#ffffff", borderRight: "1px solid #ebebed" }}
       >
         <SidebarContent />
       </aside>
@@ -164,18 +166,21 @@ export function Sidebar() {
       {/* Mobile top bar */}
       <header
         className="md:hidden sticky top-0 z-40 flex h-14 items-center justify-between px-4"
-        style={{ backgroundColor: "#0a0a0a", borderBottom: "1px solid #1a1a1a" }}
+        style={{ backgroundColor: "#ffffff", borderBottom: "1px solid #ebebed" }}
       >
         <Link href="/" className="flex items-center gap-2.5">
           <RadarIcon className="w-5 h-5 shrink-0" />
-          <span className="text-sm font-semibold tracking-tight" style={{ color: "#f0f0f0" }}>
+          <span className="text-sm font-bold tracking-tight" style={{ color: "#0f0f10" }}>
             AegisPay
           </span>
         </Link>
         <button
           onClick={() => setOpen((o) => !o)}
           aria-label={open ? "Close menu" : "Open menu"}
-          className="text-[#666] hover:text-white transition-colors"
+          style={{ color: "#a1a1aa" }}
+          className="transition-colors"
+          onMouseEnter={(e) => (e.currentTarget.style.color = "#5b5cf6")}
+          onMouseLeave={(e) => (e.currentTarget.style.color = "#a1a1aa")}
         >
           {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
@@ -184,7 +189,7 @@ export function Sidebar() {
       {/* Mobile drawer overlay */}
       {open && (
         <div
-          className="md:hidden fixed inset-0 z-50 bg-black/50"
+          className="md:hidden fixed inset-0 z-50 bg-black/20"
           onClick={() => setOpen(false)}
         />
       )}
@@ -195,7 +200,7 @@ export function Sidebar() {
           "md:hidden fixed top-0 left-0 h-dvh w-[240px] flex flex-col z-50 transition-transform duration-200 ease-out",
           open ? "translate-x-0" : "-translate-x-full",
         )}
-        style={{ backgroundColor: "#0a0a0a", borderRight: "1px solid #1a1a1a" }}
+        style={{ backgroundColor: "#ffffff", borderRight: "1px solid #ebebed" }}
       >
         <SidebarContent onNavigate={() => setOpen(false)} />
       </aside>

@@ -7,12 +7,12 @@ import { useAccount, useWriteContract } from "wagmi";
 import { agentRegistryConfig } from "@/lib/contracts";
 
 const inputClass =
-  "flex h-9 w-full rounded-md border px-3 py-1 font-mono text-sm shadow-sm transition-colors placeholder:text-[#444] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#2563EB]/50";
+  "flex h-9 w-full rounded-lg border px-3 py-1 font-mono text-sm transition-colors placeholder:text-[#a1a1aa] focus:outline-none";
 
 const inputStyle = {
-  backgroundColor: "#0a0a0a",
-  borderColor: "#1a1a1a",
-  color: "#e0e0e0",
+  backgroundColor: "#f7f7f8",
+  borderColor: "#ebebed",
+  color: "#0f0f10",
 };
 
 export default function AgentsPage() {
@@ -71,14 +71,14 @@ export default function AgentsPage() {
       {/* Header */}
       <div className="mb-8">
         <span
-          className="block font-mono tracking-[0.12em] mb-2"
-          style={{ fontSize: "11px", color: "#444" }}
+          className="block font-mono tracking-[0.12em] mb-2 text-xs"
+          style={{ color: "#a1a1aa" }}
         >
           AGENTS &middot; HEDERA
         </span>
         <h1
-          className="text-2xl font-semibold tracking-tight"
-          style={{ color: "#f0f0f0" }}
+          className="text-3xl font-bold tracking-tight"
+          style={{ color: "#0f0f10" }}
         >
           Register Agent
         </h1>
@@ -87,13 +87,13 @@ export default function AgentsPage() {
       {/* Form card */}
       <div
         className="rounded-xl p-6"
-        style={{ backgroundColor: "#0f0f0f", border: "1px solid #1a1a1a" }}
+        style={{ backgroundColor: "#ffffff", border: "1px solid #ebebed", borderRadius: "16px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}
       >
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-2">
             <label
-              className="font-mono tracking-[0.06em]"
-              style={{ fontSize: "11px", color: "#444" }}
+              className="font-mono tracking-[0.12em]"
+              style={{ fontSize: "10px", color: "#a1a1aa" }}
             >
               AGENT ADDRESS
             </label>
@@ -103,16 +103,18 @@ export default function AgentsPage() {
               onChange={(e) => setForm((f) => ({ ...f, agent: e.target.value }))}
               className={inputClass}
               style={inputStyle}
+              onFocus={(e) => (e.currentTarget.style.borderColor = "#5b5cf6")}
+              onBlur={(e) => (e.currentTarget.style.borderColor = "#ebebed")}
             />
-            <p className="text-xs" style={{ color: "#444" }}>
+            <p className="text-xs" style={{ color: "#a1a1aa" }}>
               Leave empty to use your connected wallet
             </p>
           </div>
 
           <div className="space-y-2">
             <label
-              className="font-mono tracking-[0.06em]"
-              style={{ fontSize: "11px", color: "#444" }}
+              className="font-mono tracking-[0.12em]"
+              style={{ fontSize: "10px", color: "#a1a1aa" }}
             >
               AGENT NAME
             </label>
@@ -123,13 +125,15 @@ export default function AgentsPage() {
               required
               className={inputClass}
               style={inputStyle}
+              onFocus={(e) => (e.currentTarget.style.borderColor = "#5b5cf6")}
+              onBlur={(e) => (e.currentTarget.style.borderColor = "#ebebed")}
             />
           </div>
 
           <div className="space-y-2">
             <label
-              className="font-mono tracking-[0.06em]"
-              style={{ fontSize: "11px", color: "#444" }}
+              className="font-mono tracking-[0.12em]"
+              style={{ fontSize: "10px", color: "#a1a1aa" }}
             >
               DESCRIPTION
             </label>
@@ -141,15 +145,17 @@ export default function AgentsPage() {
               }
               required
               rows={3}
-              className="flex min-h-[80px] w-full rounded-md border px-3 py-2 font-mono text-sm shadow-sm transition-colors placeholder:text-[#444] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#2563EB]/50 resize-none"
+              className="flex min-h-[80px] w-full rounded-lg border px-3 py-2 font-mono text-sm transition-colors placeholder:text-[#a1a1aa] focus:outline-none resize-none"
               style={inputStyle}
+              onFocus={(e) => (e.currentTarget.style.borderColor = "#5b5cf6")}
+              onBlur={(e) => (e.currentTarget.style.borderColor = "#ebebed")}
             />
           </div>
 
           <div className="space-y-2">
             <label
-              className="font-mono tracking-[0.06em]"
-              style={{ fontSize: "11px", color: "#444" }}
+              className="font-mono tracking-[0.12em]"
+              style={{ fontSize: "10px", color: "#a1a1aa" }}
             >
               METADATA URI
             </label>
@@ -162,14 +168,18 @@ export default function AgentsPage() {
               required
               className={inputClass}
               style={inputStyle}
+              onFocus={(e) => (e.currentTarget.style.borderColor = "#5b5cf6")}
+              onBlur={(e) => (e.currentTarget.style.borderColor = "#ebebed")}
             />
           </div>
 
           <button
             type="submit"
             disabled={isPending}
-            className="flex h-10 w-full items-center justify-center rounded-md text-sm font-medium text-white transition-colors hover:opacity-90 disabled:opacity-50"
-            style={{ backgroundColor: "#2563EB" }}
+            className="flex h-10 w-full items-center justify-center gap-2 text-sm font-semibold text-white transition-colors disabled:opacity-50"
+            style={{ backgroundColor: "#5b5cf6", borderRadius: "10px" }}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#4f46e5")}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#5b5cf6")}
           >
             {isPending ? "Registering..." : "Register Agent"}
           </button>
@@ -177,7 +187,7 @@ export default function AgentsPage() {
       </div>
 
       {error && (
-        <div className="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-400">
+        <div className="mt-4 rounded-lg px-4 py-2 text-sm" style={{ backgroundColor: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca" }}>
           {error}
         </div>
       )}
@@ -189,7 +199,8 @@ export default function AgentsPage() {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, ease: "easeOut" }}
-            className="mt-4 flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-400"
+            className="mt-4 flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-medium"
+            style={{ backgroundColor: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca" }}
           >
             Please connect your wallet
           </motion.div>
@@ -203,7 +214,8 @@ export default function AgentsPage() {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, ease: "easeOut" }}
-            className="mt-4 flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm font-medium text-emerald-400"
+            className="mt-4 flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-medium"
+            style={{ backgroundColor: "#f0fdf4", color: "#166534", border: "1px solid #bbf7d0" }}
           >
             <CheckCircle2 className="w-4 h-4 shrink-0" />
             Agent registered on Hedera ✓ tx: {hash.slice(0, 6)}...{hash.slice(-4)}
@@ -222,8 +234,10 @@ export default function AgentsPage() {
           >
             <button
               onClick={handleReset}
-              className="flex h-10 w-full items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors hover:opacity-90"
-              style={{ backgroundColor: "#1a1a1a", color: "#888", border: "1px solid #333" }}
+              className="flex h-10 w-full items-center justify-center gap-2 rounded-lg text-sm font-medium transition-colors"
+              style={{ backgroundColor: "#f7f7f8", color: "#52525b", border: "1px solid #ebebed" }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#efefff")}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#f7f7f8")}
             >
               <Bot className="w-4 h-4" />Register Another Agent
             </button>
@@ -238,7 +252,8 @@ export default function AgentsPage() {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, ease: "easeOut" }}
-            className="mt-4 flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-400"
+            className="mt-4 flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-medium"
+            style={{ backgroundColor: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca" }}
           >
             {writeError.message.length > 120
               ? writeError.message.slice(0, 120) + "..."

@@ -33,7 +33,7 @@ export function AgentIdentity({ address }: AgentIdentityProps) {
           style={{
             width: 22,
             height: 22,
-            backgroundColor: "#1a1a1a",
+            backgroundColor: "#ebebed",
           }}
         />
       ) : ensAvatar ? (
@@ -49,8 +49,8 @@ export function AgentIdentity({ address }: AgentIdentityProps) {
           style={{
             width: 22,
             height: 22,
-            backgroundColor: "#1a1a1a",
-            color: "#666",
+            backgroundColor: "#ebebed",
+            color: "#a1a1aa",
             fontSize: "9px",
           }}
         >
@@ -65,14 +65,14 @@ export function AgentIdentity({ address }: AgentIdentityProps) {
           style={{
             width: 72,
             height: 14,
-            backgroundColor: "#1a1a1a",
+            backgroundColor: "#ebebed",
             display: "inline-block",
           }}
         />
       ) : ensName ? (
         <span
           className="truncate text-sm font-medium"
-          style={{ color: "#e0e0e0" }}
+          style={{ color: "#0f0f10" }}
           title={address}
         >
           {ensName}
@@ -80,7 +80,7 @@ export function AgentIdentity({ address }: AgentIdentityProps) {
       ) : (
         <span
           className="truncate text-sm font-mono"
-          style={{ color: "#e0e0e0" }}
+          style={{ color: "#52525b" }}
           title={address}
         >
           {formatAddress(address)}

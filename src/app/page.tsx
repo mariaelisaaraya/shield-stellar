@@ -71,14 +71,14 @@ export default function HomePage() {
       {/* Header */}
       <div className="mb-8">
         <span
-          className="block font-mono tracking-[0.12em] mb-2"
-          style={{ fontSize: "11px", color: "#444" }}
+          className="block font-mono tracking-[0.12em] mb-2 text-xs"
+          style={{ color: "#a1a1aa" }}
         >
           AEGISPAY &middot; HEDERA TESTNET
         </span>
         <h1
-          className="text-2xl font-semibold tracking-tight"
-          style={{ color: "#f0f0f0" }}
+          className="text-3xl font-bold tracking-tight"
+          style={{ color: "#0f0f10" }}
         >
           Dashboard
         </h1>
@@ -95,21 +95,26 @@ export default function HomePage() {
           <motion.div
             key={s.label}
             variants={item}
-            className="rounded-xl p-5"
-            style={{ backgroundColor: "#0f0f0f", border: "1px solid #1a1a1a" }}
+            className="p-6"
+            style={{
+              backgroundColor: "#ffffff",
+              border: "1px solid #ebebed",
+              borderRadius: "14px",
+              boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+            }}
           >
             <div className="flex items-center justify-between mb-3">
               <span
-                className="font-mono tracking-[0.08em]"
-                style={{ fontSize: "11px", color: "#444" }}
+                className="font-mono tracking-[0.12em]"
+                style={{ fontSize: "10px", color: "#a1a1aa" }}
               >
                 {s.label}
               </span>
-              {s.icon && <s.icon className="w-3.5 h-3.5" style={{ color: "#333" }} />}
+              {s.icon && <s.icon className="w-3.5 h-3.5" style={{ color: "#a1a1aa" }} />}
             </div>
             <span
-              className="font-mono font-semibold"
-              style={{ fontSize: "28px", color: "#f0f0f0", lineHeight: 1 }}
+              className="text-4xl font-bold"
+              style={{ color: "#0f0f10", lineHeight: 1 }}
             >
               {loading ? "..." : s.value}
             </span>
@@ -119,27 +124,34 @@ export default function HomePage() {
 
       {/* Recent Assessments table */}
       <div
-        className="rounded-xl overflow-hidden mb-6"
-        style={{ backgroundColor: "#0f0f0f", border: "1px solid #1a1a1a" }}
+        className="overflow-hidden mb-6"
+        style={{
+          backgroundColor: "#ffffff",
+          border: "1px solid #ebebed",
+          borderRadius: "12px",
+        }}
       >
-        <div className="px-5 py-4" style={{ borderBottom: "1px solid #1a1a1a" }}>
+        <div
+          className="px-5 py-4"
+          style={{ backgroundColor: "#f7f7f8", borderBottom: "1px solid #ebebed" }}
+        >
           <span
-            className="font-mono tracking-[0.08em]"
-            style={{ fontSize: "11px", color: "#444" }}
+            className="font-mono tracking-[0.1em]"
+            style={{ fontSize: "10px", color: "#a1a1aa" }}
           >
             RECENT ASSESSMENTS
           </span>
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center gap-2 py-8" style={{ color: "#555" }}>
+          <div className="flex items-center justify-center gap-2 py-8" style={{ color: "#a1a1aa" }}>
             <Loader2 className="w-4 h-4 animate-spin" />
             <span className="text-sm">Loading from Hedera...</span>
           </div>
         ) : recent.length === 0 ? (
-          <div className="text-center py-8 text-sm" style={{ color: "#555" }}>
+          <div className="text-center py-8 text-sm" style={{ color: "#a1a1aa" }}>
             No assessments yet.{" "}
-            <Link href="/simulate" className="text-[#2563EB] hover:underline">
+            <Link href="/simulate" style={{ color: "#5b5cf6" }} className="hover:underline">
               Run one
             </Link>
           </div>
@@ -147,18 +159,18 @@ export default function HomePage() {
           <div className="overflow-x-auto">
             <table className="w-full min-w-[600px]">
               <thead>
-                <tr style={{ borderBottom: "1px solid #1a1a1a" }}>
+                <tr style={{ borderBottom: "1px solid #ebebed" }}>
                   {["Agent", "Target", "Score", "Verdict", "Time"].map((h) => (
                     <th
                       key={h}
-                      className={`font-mono font-medium tracking-[0.06em] px-5 py-3 ${
+                      className={`font-mono font-medium tracking-[0.1em] px-5 py-3 ${
                         h === "Score" || h === "Time"
                           ? "text-right"
                           : h === "Verdict"
                             ? "text-center"
                             : "text-left"
                       }`}
-                      style={{ fontSize: "11px", color: "#444" }}
+                      style={{ fontSize: "10px", color: "#a1a1aa" }}
                     >
                       {h.toUpperCase()}
                     </th>
@@ -169,27 +181,29 @@ export default function HomePage() {
                 {recent.map((row, i) => (
                   <tr
                     key={i}
-                    className="transition-colors hover:bg-[#141414]"
+                    className="transition-colors"
                     style={{
                       borderBottom:
                         i < recent.length - 1
-                          ? "1px solid #141414"
+                          ? "1px solid #ebebed"
                           : "none",
                     }}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f7f7f8")}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
                   >
-                    <td className="px-5 py-3 text-sm font-mono" style={{ color: "#e0e0e0" }}>
+                    <td className="px-5 py-3 text-sm font-mono" style={{ color: "#52525b" }}>
                       {shortAddr(row.agent)}
                     </td>
-                    <td className="px-5 py-3 text-sm font-mono" style={{ color: "#555" }}>
+                    <td className="px-5 py-3 text-sm font-mono" style={{ color: "#52525b" }}>
                       {shortAddr(row.target)}
                     </td>
-                    <td className="px-5 py-3 text-sm font-mono text-right" style={{ color: "#e0e0e0" }}>
+                    <td className="px-5 py-3 text-sm font-mono font-semibold text-right" style={{ color: "#0f0f10" }}>
                       {row.riskScore}
                     </td>
                     <td className="px-5 py-3 text-center">
                       <VerdictBadge verdict={row.verdict} />
                     </td>
-                    <td className="px-5 py-3 text-sm font-mono text-right" style={{ color: "#444" }}>
+                    <td className="px-5 py-3 text-sm font-mono text-right" style={{ color: "#a1a1aa" }}>
                       {timeAgo(row.timestamp)}
                     </td>
                   </tr>
@@ -204,7 +218,7 @@ export default function HomePage() {
       <Link
         href="/simulate"
         className="inline-flex items-center gap-2 text-sm font-medium transition-colors"
-        style={{ color: "#2563EB" }}
+        style={{ color: "#5b5cf6" }}
       >
         Run Assessment
         <ArrowRight className="w-4 h-4" />
