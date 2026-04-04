@@ -3,6 +3,7 @@ import { GeistMono } from "geist/font/mono";
 import { GeistSans } from "geist/font/sans";
 
 import { Sidebar } from "@/components/sidebar";
+import { AgentInfo } from "@/components/agent-info";
 import { Providers } from "@/components/providers";
 
 import "./globals.css";
@@ -23,6 +24,7 @@ export default function RootLayout({
         className={`${GeistSans.variable} ${GeistMono.variable} min-h-dvh font-sans antialiased bg-background text-foreground`}
       >
         <Providers>
+          <AgentInfo />
           <Sidebar />
           <main
             className="md:ml-[240px] min-h-dvh overflow-y-auto px-4 py-6 md:px-8 md:py-8"
