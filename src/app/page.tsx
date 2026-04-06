@@ -74,7 +74,7 @@ export default function HomePage() {
           className="block font-mono tracking-[0.12em] mb-2 text-xs"
           style={{ color: "#a1a1aa" }}
         >
-          AEGISPAY &middot; HEDERA TESTNET
+          AEGISPAY &middot; STELLAR TESTNET
         </span>
         <h1
           className="text-3xl font-bold tracking-tight"
@@ -83,7 +83,7 @@ export default function HomePage() {
           Dashboard
         </h1>
         <p style={{ color: "var(--text-3)", fontSize: "14px", marginTop: "4px" }}>
-          Monitor your AI agents in real time on Hedera Testnet
+          Monitor your AI agents in real time on Stellar Testnet
         </p>
       </div>
 
@@ -152,7 +152,7 @@ export default function HomePage() {
         {loading ? (
           <div className="flex items-center justify-center gap-2 py-8" style={{ color: "#a1a1aa" }}>
             <Loader2 className="w-4 h-4 animate-spin" />
-            <span className="text-sm">Loading from Hedera...</span>
+            <span className="text-sm">Loading from Stellar...</span>
           </div>
         ) : recent.length === 0 ? (
           <div className="text-center py-8 text-sm" style={{ color: "#a1a1aa" }}>

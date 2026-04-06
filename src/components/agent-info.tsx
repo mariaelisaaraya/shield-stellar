@@ -31,7 +31,7 @@ export function AgentInfo() {
               <span className="font-mono" style={{ color: "#5b5cf6" }}>Type</span>
               <span style={{ color: "#52525b" }}>Trust Layer for Autonomous AI Agents</span>
               <span className="font-mono" style={{ color: "#5b5cf6" }}>Network</span>
-              <span style={{ color: "#52525b" }}>Hedera (EVM-compatible, Chain 296)</span>
+              <span style={{ color: "#52525b" }}>Stellar Testnet (Soroban + x402)</span>
             </div>
 
             <div className="h-px" style={{ backgroundColor: "#ebebed" }} />
@@ -51,10 +51,10 @@ export function AgentInfo() {
                 {[
                   "Risk scoring (0-100) based on amount, address reputation, history",
                   "On-chain policy engine: ALLOW, WARN, BLOCK",
-                  "Human-in-the-loop via Ledger hardware wallet",
+                  "Human-in-the-loop via Freighter wallet",
                   "Immutable on-chain audit trail",
-                  "Agent identity registration (ERC-8004)",
-                  "ERC-7730 Clear Signing for Ledger",
+                  "Agent identity registration via Soroban",
+                  "x402 micropayments for risk assessments",
                 ].map((item, i) => (
                   <li key={i} className="flex items-start gap-1.5 text-xs" style={{ color: "#52525b" }}>
                     <span className="mt-1.5 block h-1 w-1 rounded-full shrink-0" style={{ backgroundColor: "#d4d4d8" }} />
@@ -70,7 +70,7 @@ export function AgentInfo() {
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
               <span className="font-mono text-[10px] tracking-widest" style={{ color: "#5b5cf6" }}>POLICY</span>
               <span><span className="font-mono" style={{ color: "#166534" }}>ALLOW</span> <span style={{ color: "#52525b" }}>— below threshold, auto-execute</span></span>
-              <span><span className="font-mono" style={{ color: "#854d0e" }}>WARN</span> <span style={{ color: "#52525b" }}>— warning zone, Ledger approval</span></span>
+              <span><span className="font-mono" style={{ color: "#854d0e" }}>WARN</span> <span style={{ color: "#52525b" }}>— warning zone, human approval</span></span>
               <span><span className="font-mono" style={{ color: "#dc2626" }}>BLOCK</span> <span style={{ color: "#52525b" }}>— above threshold, denied</span></span>
             </div>
 

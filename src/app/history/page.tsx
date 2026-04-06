@@ -92,7 +92,7 @@ export default function HistoryPage() {
           Assessment History
         </h1>
         <p style={{ color: "var(--text-3)", fontSize: "14px", marginTop: "4px" }}>
-          Immutable audit trail of every agent decision on Hedera Testnet
+          Immutable audit trail of every agent decision on Stellar Testnet
         </p>
       </div>
 
@@ -104,7 +104,7 @@ export default function HistoryPage() {
         {loading ? (
           <div className="flex items-center justify-center gap-2 py-12" style={{ color: "#a1a1aa" }}>
             <Loader2 className="w-4 h-4 animate-spin" />
-            <span className="text-sm">Loading from Hedera...</span>
+            <span className="text-sm">Loading from Stellar...</span>
           </div>
         ) : assessments.length === 0 ? (
           <div className="text-center py-12 text-sm" style={{ color: "#a1a1aa" }}>
