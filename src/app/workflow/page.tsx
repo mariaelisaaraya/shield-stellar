@@ -21,7 +21,7 @@ type Verdict = "ALLOW" | "WARN" | "BLOCK";
 interface Assessment {
   agent: string;
   target: string;
-  amountHbar: number;
+  amountXlm: number;
   usdValue: number;
   riskScore: number;
   verdict: Verdict;
@@ -32,14 +32,8 @@ interface Assessment {
 interface WorkflowResult {
   workflow: string;
   version: string;
-  executedOn: string;
-  hbarPriceUsd: number;
-  chainlinkFeed?: {
-    source: string;
-    contract: string;
-    rawPrice: string;
-    note: string;
-  };
+  network: string;
+  xlmPriceUsd: number;
   policyThresholds: { low: number; medium: number };
   summary: {
     totalAssessed: number;
@@ -102,42 +96,33 @@ export default function WorkflowPage() {
             <h1 className="text-xl font-semibold tracking-tight" style={{ color: "#0f0f10" }}>
               CRE Workflow
             </h1>
-            <p className="text-sm" style={{ color: "#52525b" }}>Decentralized risk assessment on Chainlink DON</p>
+            <p className="text-sm" style={{ color: "#52525b" }}>Batch risk assessment on Stellar Testnet</p>
           </div>
         </div>
 
-        {/* Chainlink badge */}
+        {/* Network badge */}
         <div className="mt-6 mb-6 flex items-center gap-2 rounded-lg px-3 py-2" style={{ backgroundColor: "#efefff", border: "1px solid #c7d2fe" }}>
           <Server className="w-3.5 h-3.5" style={{ color: "#5b5cf6" }} />
           <span className="text-xs font-mono" style={{ color: "#5b5cf6" }}>
-            Powered by Chainlink Runtime Environment (CRE)
+            Stellar Testnet — x402 Risk Assessment Engine
           </span>
-          <a
-            href="https://docs.chain.link/cre"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="ml-auto"
-          >
-            <ExternalLink className="w-3 h-3" style={{ color: "#5b5cf6" }} />
-          </a>
         </div>
 
         {/* How it works */}
         <div className="rounded-xl p-5 mb-6" style={{ backgroundColor: "#ffffff", border: "1px solid #ebebed" }}>
           <p className="font-mono text-[10px] tracking-[0.1em] mb-3" style={{ color: "#a1a1aa" }}>HOW IT WORKS</p>
           <div className="flex flex-wrap items-center gap-2 text-xs font-mono" style={{ color: "#52525b" }}>
-            <span className="rounded px-2 py-1" style={{ backgroundColor: "#efefff", color: "#5b5cf6" }}>Cron Trigger</span>
-            <span style={{ color: "#d4d4d8" }}>-&gt;</span>
-            <span className="rounded px-2 py-1" style={{ backgroundColor: "#fffbeb", color: "#854d0e" }}>HTTP: HBAR Price</span>
-            <span style={{ color: "#d4d4d8" }}>-&gt;</span>
+            <span className="rounded px-2 py-1" style={{ backgroundColor: "#efefff", color: "#5b5cf6" }}>Agent Request</span>
+            <span style={{ color: "#d4d4d8" }}>→</span>
+            <span className="rounded px-2 py-1" style={{ backgroundColor: "#fffbeb", color: "#854d0e" }}>x402 Payment</span>
+            <span style={{ color: "#d4d4d8" }}>→</span>
             <span className="rounded px-2 py-1" style={{ backgroundColor: "#f0fdf4", color: "#166534" }}>Risk Scoring</span>
-            <span style={{ color: "#d4d4d8" }}>-&gt;</span>
+            <span style={{ color: "#d4d4d8" }}>→</span>
             <span className="rounded px-2 py-1" style={{ backgroundColor: "#fef2f2", color: "#dc2626" }}>Verdict</span>
           </div>
           <p className="text-xs mt-3 leading-relaxed" style={{ color: "#52525b" }}>
-            The workflow runs on a Chainlink Decentralized Oracle Network (DON).
-            Multiple nodes fetch the HBAR/USD price, reach consensus, then score each
-            pending AI agent transaction using AegisPay&apos;s risk engine.
+            The workflow evaluates pending AI agent transactions using AegisPay&apos;s risk engine
+            on Stellar. Agents pay for assessments via x402 micropayments in USDC.
           </p>
         </div>
 
@@ -153,12 +138,12 @@ export default function WorkflowPage() {
           {loading ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
-              Running CRE Workflow on DON...
+              Running Risk Assessment...
             </>
           ) : (
             <>
               <Play className="w-4 h-4" />
-              Run CRE Risk Assessment
+              Run Batch Risk Assessment
             </>
           )}
         </button>
@@ -179,35 +164,18 @@ export default function WorkflowPage() {
               transition={{ duration: 0.35 }}
               className="space-y-4"
             >
-              {/* Live price + execution info */}
+              {/* Live price */}
               <div className="flex items-center justify-between rounded-xl px-4 py-3" style={{ backgroundColor: "#efefff", border: "1px solid #c7d2fe" }}>
                 <div className="flex items-center gap-2">
                   <DollarSign className="w-4 h-4" style={{ color: "#5b5cf6" }} />
                   <span className="text-sm font-mono" style={{ color: "#5b5cf6" }}>
-                    HBAR/USD: ${result.hbarPriceUsd.toFixed(4)}
+                    XLM/USD: ${result.xlmPriceUsd.toFixed(4)}
                   </span>
                 </div>
                 <span className="text-[10px] font-mono" style={{ color: "#a1a1aa" }}>
                   {new Date(result.timestamp).toLocaleTimeString()}
                 </span>
               </div>
-
-              {result.chainlinkFeed && (
-                <div className="flex items-center gap-2 rounded-lg px-3 py-2" style={{ backgroundColor: "#f0fdf4", border: "1px solid #bbf7d0" }}>
-                  <ShieldCheck className="w-3.5 h-3.5" style={{ color: "#166534" }} />
-                  <span className="text-[11px] font-mono" style={{ color: "#166534" }}>
-                    Price from Chainlink AggregatorV3Interface on-chain
-                  </span>
-                  <a
-                    href={`https://hashscan.io/testnet/contract/${result.chainlinkFeed.contract}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="ml-auto"
-                  >
-                    <ExternalLink className="w-3 h-3" style={{ color: "#166534" }} />
-                  </a>
-                </div>
-              )}
 
               {/* Stats grid */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -262,7 +230,7 @@ export default function WorkflowPage() {
                       <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs font-mono mb-2">
                         <div>
                           <span style={{ color: "#a1a1aa" }}>Amount: </span>
-                          <span style={{ color: "#52525b" }}>{a.amountHbar} HBAR (${a.usdValue.toFixed(2)})</span>
+                          <span style={{ color: "#52525b" }}>{a.amountXlm} XLM (${a.usdValue.toFixed(2)})</span>
                         </div>
                         <div>
                           <span style={{ color: "#a1a1aa" }}>Score: </span>
@@ -305,20 +273,6 @@ export default function WorkflowPage() {
                   <span style={{ color: "#854d0e" }}>WARN {result.policyThresholds.low}-{result.policyThresholds.medium}</span>{" | "}
                   <span style={{ color: "#dc2626" }}>BLOCK &gt;={result.policyThresholds.medium}</span>
                 </span>
-              </div>
-
-              {/* Links */}
-              <div className="flex flex-wrap gap-3 text-xs">
-                <a
-                  href="https://docs.chain.link/cre"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 font-mono hover:underline"
-                  style={{ color: "#52525b" }}
-                >
-                  <ExternalLink className="w-3 h-3" />
-                  CRE Documentation
-                </a>
               </div>
             </motion.div>
           )}
