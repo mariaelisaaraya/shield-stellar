@@ -2,26 +2,63 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "next-themes";
-import { useEffect, useState } from "react";
-import { WagmiProvider } from "wagmi";
+import { createContext, useContext, useEffect, useState } from "react";
+import {
+  isFreighterInstalled,
+  getFreighterPublicKey,
+  formatStellarAddress,
+} from "@/lib/stellar";
 
-import { wagmiConfig } from "@/lib/wagmi";
-import { initLedger } from "@/lib/ledger";
+// --- Stellar Wallet Context ---
+
+interface StellarWalletState {
+  publicKey: string | null;
+  isConnected: boolean;
+  isFreighterAvailable: boolean;
+  displayName: string;
+  connect: () => Promise<void>;
+}
+
+const StellarWalletContext = createContext<StellarWalletState>({
+  publicKey: null,
+  isConnected: false,
+  isFreighterAvailable: false,
+  displayName: "",
+  connect: async () => {},
+});
+
+export const useStellarWallet = () => useContext(StellarWalletContext);
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
     () =>
       new QueryClient({
-        defaultOptions: {
-          queries: { staleTime: 60_000 },
-        },
+        defaultOptions: { queries: { staleTime: 60_000 } },
       }),
   );
 
-  useEffect(() => { initLedger(); }, []);
+  const [publicKey, setPublicKey] = useState<string | null>(null);
+  const [isFreighterAvailable, setIsFreighterAvailable] = useState(false);
+
+  useEffect(() => {
+    setIsFreighterAvailable(isFreighterInstalled());
+  }, []);
+
+  const connect = async () => {
+    const key = await getFreighterPublicKey();
+    if (key) setPublicKey(key);
+  };
+
+  const walletState: StellarWalletState = {
+    publicKey,
+    isConnected: !!publicKey,
+    isFreighterAvailable,
+    displayName: publicKey ? formatStellarAddress(publicKey) : "",
+    connect,
+  };
 
   return (
-    <WagmiProvider config={wagmiConfig}>
+    <StellarWalletContext.Provider value={walletState}>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider
           attribute="class"
@@ -31,6 +68,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
           {children}
         </ThemeProvider>
       </QueryClientProvider>
-    </WagmiProvider>
+    </StellarWalletContext.Provider>
   );
 }
