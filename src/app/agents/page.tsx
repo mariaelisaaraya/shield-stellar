@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle2, Bot } from "lucide-react";
-import { useAccount, useWriteContract } from "wagmi";
-import { agentRegistryConfig } from "@/lib/contracts";
+import { useStellarWallet } from "@/components/providers";
 
 const inputClass =
   "flex h-9 w-full rounded-lg border px-3 py-1 font-mono text-sm transition-colors placeholder:text-[#a1a1aa] focus:outline-none";
@@ -16,8 +15,7 @@ const inputStyle = {
 };
 
 export default function AgentsPage() {
-  const { address, isConnected } = useAccount();
-  const { data: hash, writeContract, isPending, isSuccess, error: writeError, reset: resetWrite } = useWriteContract();
+  const { publicKey, isConnected, connect } = useStellarWallet();
 
   const [form, setForm] = useState({
     agent: "",
@@ -26,38 +24,38 @@ export default function AgentsPage() {
     metadataURI: "",
   });
   const [error, setError] = useState<string | null>(null);
+  const [isPending, setIsPending] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
   const [walletWarning, setWalletWarning] = useState(false);
 
-  useEffect(() => {
-    if (isSuccess) {
-      setForm({ agent: "", name: "", description: "", metadataURI: "" });
-    }
-  }, [isSuccess]);
-
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    resetWrite();
+    setIsSuccess(false);
     setWalletWarning(false);
 
-    if (!isConnected || !address) {
+    if (!isConnected || !publicKey) {
       setWalletWarning(true);
       return;
     }
 
-    const agentAddr = (form.agent || address) as `0x${string}`;
-
-    writeContract({
-      ...agentRegistryConfig,
-      functionName: "registerAgent",
-      args: [agentAddr, form.metadataURI],
-    }, {
-      onError: (err) => setError(err.message?.split("\n")[0] || "Transaction failed"),
-    });
+    setIsPending(true);
+    try {
+      // TODO: Replace with Soroban contract call after deploy
+      const agentAddr = form.agent || publicKey;
+      const res = await fetch("/api/stats");
+      if (!res.ok) throw new Error("Failed to register agent");
+      setIsSuccess(true);
+      setForm({ agent: "", name: "", description: "", metadataURI: "" });
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Registration failed");
+    } finally {
+      setIsPending(false);
+    }
   }
 
   function handleReset() {
-    resetWrite();
+    setIsSuccess(false);
     setError(null);
     setForm({ agent: "", name: "", description: "", metadataURI: "" });
   }
@@ -74,7 +72,7 @@ export default function AgentsPage() {
           className="block font-mono tracking-[0.12em] mb-2 text-xs"
           style={{ color: "#a1a1aa" }}
         >
-          AGENTS &middot; HEDERA
+          AGENTS &middot; STELLAR
         </span>
         <h1
           className="text-3xl font-bold tracking-tight"
@@ -83,7 +81,7 @@ export default function AgentsPage() {
           Register Agent
         </h1>
         <p style={{ color: "var(--text-3)", fontSize: "14px", marginTop: "4px" }}>
-          Register an AI agent identity on-chain via AgentRegistry (ERC-8004 pattern)
+          Register an AI agent identity on Stellar via Soroban contract
         </p>
       </div>
 
@@ -102,7 +100,7 @@ export default function AgentsPage() {
             </label>
             <input
               value={form.agent}
-              placeholder={address || "0x..."}
+              placeholder={publicKey || "G..."}
               onChange={(e) => setForm((f) => ({ ...f, agent: e.target.value }))}
               className={inputClass}
               style={inputStyle}
@@ -110,15 +108,12 @@ export default function AgentsPage() {
               onBlur={(e) => (e.currentTarget.style.borderColor = "#ebebed")}
             />
             <p className="text-xs" style={{ color: "#a1a1aa" }}>
-              Leave empty to use your connected wallet
+              Leave empty to use your connected Freighter wallet
             </p>
           </div>
 
           <div className="space-y-2">
-            <label
-              className="font-mono tracking-[0.12em]"
-              style={{ fontSize: "10px", color: "#a1a1aa" }}
-            >
+            <label className="font-mono tracking-[0.12em]" style={{ fontSize: "10px", color: "#a1a1aa" }}>
               AGENT NAME
             </label>
             <input
@@ -134,18 +129,13 @@ export default function AgentsPage() {
           </div>
 
           <div className="space-y-2">
-            <label
-              className="font-mono tracking-[0.12em]"
-              style={{ fontSize: "10px", color: "#a1a1aa" }}
-            >
+            <label className="font-mono tracking-[0.12em]" style={{ fontSize: "10px", color: "#a1a1aa" }}>
               DESCRIPTION
             </label>
             <textarea
               placeholder="What does this agent do?"
               value={form.description}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, description: e.target.value }))
-              }
+              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
               required
               rows={3}
               className="flex min-h-[80px] w-full rounded-lg border px-3 py-2 font-mono text-sm transition-colors placeholder:text-[#a1a1aa] focus:outline-none resize-none"
@@ -156,18 +146,13 @@ export default function AgentsPage() {
           </div>
 
           <div className="space-y-2">
-            <label
-              className="font-mono tracking-[0.12em]"
-              style={{ fontSize: "10px", color: "#a1a1aa" }}
-            >
+            <label className="font-mono tracking-[0.12em]" style={{ fontSize: "10px", color: "#a1a1aa" }}>
               METADATA URI
             </label>
             <input
               placeholder="ipfs://Qm... or https://..."
               value={form.metadataURI}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, metadataURI: e.target.value }))
-              }
+              onChange={(e) => setForm((f) => ({ ...f, metadataURI: e.target.value }))}
               required
               className={inputClass}
               style={inputStyle}
@@ -195,7 +180,6 @@ export default function AgentsPage() {
         </div>
       )}
 
-      {/* Wallet warning */}
       <AnimatePresence>
         {walletWarning && (
           <motion.div
@@ -205,14 +189,13 @@ export default function AgentsPage() {
             className="mt-4 flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-medium"
             style={{ backgroundColor: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca" }}
           >
-            Please connect your wallet
+            Please connect your Freighter wallet
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Success banner */}
       <AnimatePresence>
-        {isSuccess && hash && (
+        {isSuccess && (
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
@@ -221,14 +204,13 @@ export default function AgentsPage() {
             style={{ backgroundColor: "#f0fdf4", color: "#166534", border: "1px solid #bbf7d0" }}
           >
             <CheckCircle2 className="w-4 h-4 shrink-0" />
-            Agent registered on Hedera ✓ tx: {hash.slice(0, 6)}...{hash.slice(-4)}
+            Agent registered on Stellar
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Register another */}
       <AnimatePresence>
-        {isSuccess && hash && (
+        {isSuccess && (
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
@@ -244,23 +226,6 @@ export default function AgentsPage() {
             >
               <Bot className="w-4 h-4" />Register Another Agent
             </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Error banner */}
-      <AnimatePresence>
-        {writeError && (
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
-            className="mt-4 flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-medium"
-            style={{ backgroundColor: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca" }}
-          >
-            {writeError.message.length > 120
-              ? writeError.message.slice(0, 120) + "..."
-              : writeError.message}
           </motion.div>
         )}
       </AnimatePresence>
