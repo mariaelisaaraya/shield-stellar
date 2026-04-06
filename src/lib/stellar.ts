@@ -106,19 +106,24 @@ export async function fundTestnetAccount(publicKey: string): Promise<boolean> {
   }
 }
 
-// --- Freighter Wallet ---
+// --- Freighter Wallet (v6+ API) ---
 
-export function isFreighterInstalled(): boolean {
+export async function isFreighterInstalled(): Promise<boolean> {
   if (typeof window === "undefined") return false;
-  return !!(window as unknown as Record<string, unknown>).freighter;
+  try {
+    const { isConnected } = await import("@stellar/freighter-api");
+    const result = await isConnected();
+    return result.isConnected;
+  } catch {
+    return false;
+  }
 }
 
 export async function getFreighterPublicKey(): Promise<string | null> {
-  if (!isFreighterInstalled()) return null;
   try {
     const { requestAccess } = await import("@stellar/freighter-api");
-    const address = await requestAccess();
-    return address as unknown as string;
+    const result = await requestAccess();
+    return result.address ?? null;
   } catch {
     return null;
   }

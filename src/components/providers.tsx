@@ -41,7 +41,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const [isFreighterAvailable, setIsFreighterAvailable] = useState(false);
 
   useEffect(() => {
-    setIsFreighterAvailable(isFreighterInstalled());
+    isFreighterInstalled().then(setIsFreighterAvailable);
   }, []);
 
   const connect = async () => {
