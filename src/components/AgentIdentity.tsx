@@ -1,41 +1,21 @@
 "use client";
 
-import { useEnsName, useEnsAvatar } from "wagmi";
-
-function shortAddr(addr: string) {
-  return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
-}
+import { formatStellarAddress } from "@/lib/stellar";
 
 export function AgentIdentity({ address }: { address: string }) {
-  const { data: ensName } = useEnsName({
-    address: address as `0x${string}`,
-    chainId: 1,
-  });
+  const initials = address.slice(0, 2).toUpperCase();
 
-  const { data: ensAvatar } = useEnsAvatar({
-    name: ensName ?? undefined,
-    chainId: 1,
-  });
-
-  if (ensName) {
-    return (
-      <span className="inline-flex items-center gap-2">
-        {ensAvatar ? (
-          <img
-            src={ensAvatar}
-            alt={ensName}
-            className="w-5 h-5 rounded-full"
-          />
-        ) : (
-          <span
-            className="w-5 h-5 rounded-full inline-block"
-            style={{ backgroundColor: "#ebebed", border: "1px solid #d4d4d8" }}
-          />
-        )}
-        <span style={{ color: "#5b5cf6" }}>{ensName}</span>
+  return (
+    <span className="inline-flex items-center gap-2">
+      <span
+        className="w-5 h-5 rounded-full inline-flex items-center justify-center font-mono"
+        style={{ backgroundColor: "#ebebed", color: "#a1a1aa", fontSize: "9px" }}
+      >
+        {initials}
       </span>
-    );
-  }
-
-  return <span>{shortAddr(address)}</span>;
+      <span className="font-mono text-sm" style={{ color: "#52525b" }}>
+        {formatStellarAddress(address)}
+      </span>
+    </span>
+  );
 }
