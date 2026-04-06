@@ -55,7 +55,7 @@ export default function HomePage() {
       .catch(() => setLoading(false));
   }, []);
 
-  const cards = [
+  const cards: { label: string; value: number; icon: typeof Bot | null; sub: string; subColor?: string }[] = [
     { label: "REGISTERED AGENTS", value: stats.agentCount, icon: Bot, sub: "active on Hedera Testnet" },
     { label: "TOTAL ASSESSMENTS", value: stats.total, icon: null, sub: "risk evaluations recorded on-chain" },
     { label: "BLOCKED ACTIONS", value: stats.blocked, icon: ShieldOff, sub: "transactions prevented" },
