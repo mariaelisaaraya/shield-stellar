@@ -32,5 +32,6 @@ yarn-error.log*
 .idea
 .vscode
 agent/.env
+server/.env
 mcp/
 tsconfig.tsbuildinfo
