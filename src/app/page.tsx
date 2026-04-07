@@ -74,7 +74,7 @@ export default function HomePage() {
           className="block font-mono tracking-[0.12em] mb-2 text-xs"
           style={{ color: "#a1a1aa" }}
         >
-          AEGISPAY &middot; STELLAR TESTNET
+          SHIELDSTELLAR &middot; STELLAR TESTNET
         </span>
         <h1
           className="text-3xl font-bold tracking-tight"

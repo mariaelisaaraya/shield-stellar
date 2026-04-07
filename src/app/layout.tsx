@@ -17,8 +17,8 @@ const inconsolata = Inconsolata({
 });
 
 export const metadata: Metadata = {
-  title: "AegisPay",
-  description: "Hackathon demo — AegisPay",
+  title: "ShieldStellar",
+  description: "AI agent risk assessment with x402 payments on Stellar",
 };
 
 export default function RootLayout({

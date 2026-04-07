@@ -299,7 +299,7 @@ export default function SimulatePage() {
 
             {result.verdict === "BLOCK" && (
               <div className="mt-4 flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium" style={{ backgroundColor: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca" }}>
-                <ShieldOff className="w-4 h-4 shrink-0" />Transfer blocked by AegisPay
+                <ShieldOff className="w-4 h-4 shrink-0" />Transfer blocked by ShieldStellar
               </div>
             )}
 

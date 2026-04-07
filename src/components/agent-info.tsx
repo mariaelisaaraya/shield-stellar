@@ -27,7 +27,7 @@ export function AgentInfo() {
             {/* Identity */}
             <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-xs">
               <span className="font-mono" style={{ color: "#5b5cf6" }}>Name</span>
-              <span style={{ color: "#52525b" }}>AegisPay</span>
+              <span style={{ color: "#52525b" }}>ShieldStellar</span>
               <span className="font-mono" style={{ color: "#5b5cf6" }}>Type</span>
               <span style={{ color: "#52525b" }}>Trust Layer for Autonomous AI Agents</span>
               <span className="font-mono" style={{ color: "#5b5cf6" }}>Network</span>

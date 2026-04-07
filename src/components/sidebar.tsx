@@ -77,7 +77,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       <div className="flex items-center gap-2.5 px-5 pt-6 pb-8">
         <RadarIcon className="w-5 h-5 shrink-0" />
         <span className="text-sm font-bold tracking-tight" style={{ color: "#0f0f10" }}>
-          AegisPay
+          ShieldStellar
         </span>
       </div>
 
@@ -156,7 +156,7 @@ export function Sidebar() {
         <Link href="/" className="flex items-center gap-2.5">
           <RadarIcon className="w-5 h-5 shrink-0" />
           <span className="text-sm font-bold tracking-tight" style={{ color: "#0f0f10" }}>
-            AegisPay
+            ShieldStellar
           </span>
         </Link>
         <button
