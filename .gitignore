@@ -33,5 +33,6 @@ yarn-error.log*
 .vscode
 agent/.env
 server/.env
+agent-x402/.env
 mcp/
 tsconfig.tsbuildinfo
