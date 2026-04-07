@@ -1,5 +1,6 @@
 import dotenv from "dotenv";
 import { fileURLToPath } from "node:url";
+import { execSync } from "child_process";
 import { Transaction, TransactionBuilder } from "@stellar/stellar-sdk";
 import { x402Client, x402HTTPClient } from "@x402/fetch";
 import { createEd25519Signer, getNetworkPassphrase } from "@x402/stellar";
@@ -15,36 +16,62 @@ const SERVER_URL = process.env.SERVER_URL || "http://localhost:4002";
 const NETWORK = "stellar:testnet";
 const STELLAR_RPC_URL = "https://soroban-testnet.stellar.org";
 
+const CONTRACTS = {
+  assessmentRegistry: "CCDUJPZRP6Y62BNDIT3JBSLLOOX4IZTAXHTEWL6AO7NGCTF2P4KNRWST",
+};
+
 if (!STELLAR_PRIVATE_KEY) {
   console.error("ERROR: STELLAR_PRIVATE_KEY not set in .env");
   process.exit(1);
 }
 
+// --- Register assessment on-chain via Soroban ---
+function registerAssessment(agentAddr, targetAddr, score, verdict, reason) {
+  console.log("  Registering assessment on Soroban...");
+  const cmd = `stellar contract invoke \
+    --id ${CONTRACTS.assessmentRegistry} \
+    --source agent-client \
+    --network testnet \
+    --send=yes \
+    -- create_assessment \
+    --agent ${agentAddr} \
+    --target ${targetAddr} \
+    --risk_score ${score} \
+    --verdict "${verdict}" \
+    --reason "${reason}"`;
+  try {
+    const output = execSync(cmd, { encoding: "utf-8", timeout: 30000 }).trim();
+    const lines = output.split("\n").filter((l) => !l.startsWith("ℹ️") && !l.startsWith("⚠️"));
+    console.log(`  Assessment registered on-chain (id: ${lines[lines.length - 1]})`);
+    return true;
+  } catch (err) {
+    console.error("  Failed to register assessment:", err.message?.split("\n")[0]);
+    return false;
+  }
+}
+
+// --- x402 pay and fetch ---
 async function payAndFetch(httpClient, client, endpoint) {
   const url = `${SERVER_URL}${endpoint}`;
   console.log(`\n→ GET ${url}`);
 
-  // Step 1: Try without payment — get 402
   const firstTry = await fetch(url);
   console.log(`  Status: ${firstTry.status}`);
 
   if (firstTry.status !== 402) {
     const body = await firstTry.text();
     console.log(`  Response: ${body}`);
-    return;
+    return null;
   }
 
   console.log("  Payment required — signing USDC transaction...");
 
-  // Step 2: Get payment requirements from 402 response
   const paymentRequired = httpClient.getPaymentRequiredResponse(
     (name) => firstTry.headers.get(name),
   );
 
-  // Step 3: Create signed payment payload
   let paymentPayload = await client.createPaymentPayload(paymentRequired);
 
-  // Step 4: Set fee to 1 stroop (testnet facilitator requirement)
   const networkPassphrase = getNetworkPassphrase(NETWORK);
   const tx = new Transaction(
     paymentPayload.payload.transaction,
@@ -68,7 +95,6 @@ async function payAndFetch(httpClient, client, endpoint) {
     };
   }
 
-  // Step 5: Encode payment header and retry
   const paymentHeaders = httpClient.encodePaymentSignatureHeader(paymentPayload);
 
   console.log("  Sending paid request...");
@@ -85,14 +111,19 @@ async function payAndFetch(httpClient, client, endpoint) {
   console.log(`  Status: ${paidResponse.status}`);
   console.log(`  Response: ${body}`);
   if (paymentResponse) {
-    console.log(`  Settlement: ${JSON.stringify(paymentResponse)}`);
+    console.log(`  Settlement tx: ${paymentResponse.transaction}`);
+  }
+
+  try {
+    return JSON.parse(body);
+  } catch {
+    return null;
   }
 }
 
 async function main() {
   console.log("=== ShieldStellar x402 Agent ===\n");
 
-  // Setup x402 client
   const signer = createEd25519Signer(STELLAR_PRIVATE_KEY, NETWORK);
   const rpcConfig = { url: STELLAR_RPC_URL };
   const client = new x402Client().register(
@@ -101,21 +132,37 @@ async function main() {
   );
   const httpClient = new x402HTTPClient(client);
 
-  console.log(`Agent: ${signer.address}`);
+  const agentAddr = signer.address;
+  // Use deployer as target for demo assessments
+  const targetAddr = "GDGNKYEEYQMFWHYXJA6NGM3573GDSOKQ3L6TTD2DERPELZFHZRDHHYCV";
+
+  console.log(`Agent: ${agentAddr}`);
   console.log(`Server: ${SERVER_URL}`);
   console.log(`Network: ${NETWORK}`);
 
-  // Test 1: Get thresholds (pays $0.0005 USDC)
-  await payAndFetch(httpClient, client, "/thresholds");
+  // --- Assessment 1: Low risk transfer (score 25) ---
+  console.log("\n━━━ Assessment 1: Low risk transfer ━━━");
+  const verdict1 = await payAndFetch(httpClient, client, "/verdict?score=25");
+  if (verdict1) {
+    registerAssessment(agentAddr, targetAddr, 25, verdict1.verdict, "Low risk transfer to known address");
+  }
 
-  // Test 2: Get verdict for score 50 (pays $0.001 USDC)
-  await payAndFetch(httpClient, client, "/verdict?score=50");
+  // --- Assessment 2: Medium risk swap (score 50) ---
+  console.log("\n━━━ Assessment 2: Medium risk swap ━━━");
+  const verdict2 = await payAndFetch(httpClient, client, "/verdict?score=50");
+  if (verdict2) {
+    registerAssessment(agentAddr, targetAddr, 50, verdict2.verdict, "Swap operation with elevated amount");
+  }
 
-  // Test 3: Get verdict for score 85 (pays $0.001 USDC)
-  await payAndFetch(httpClient, client, "/verdict?score=85");
+  // --- Assessment 3: High risk contract call (score 85) ---
+  console.log("\n━━━ Assessment 3: High risk contract call ━━━");
+  const verdict3 = await payAndFetch(httpClient, client, "/verdict?score=85");
+  if (verdict3) {
+    registerAssessment(agentAddr, targetAddr, 85, verdict3.verdict, "Contract call to unknown address blocked");
+  }
 
-  console.log("\n=== Done — check Stellar Expert for payment transactions ===");
-  console.log(`https://stellar.expert/explorer/testnet/account/${signer.address}`);
+  console.log("\n=== Done ===");
+  console.log(`Agent txs: https://stellar.expert/explorer/testnet/account/${agentAddr}`);
 }
 
 main().catch((err) => {
