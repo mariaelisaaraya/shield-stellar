@@ -178,12 +178,13 @@ export default function WorkflowPage() {
       let txHash: string | undefined;
       let explorerUrl: string | undefined;
       try {
+        const deployer = "GDGNKYEEYQMFWHYXJA6NGM3573GDSOKQ3L6TTD2DERPELZFHZRDHHYCV";
         const assessRes = await fetch("/api/assess", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            agent: "GDGNKYEEYQMFWHYXJA6NGM3573GDSOKQ3L6TTD2DERPELZFHZRDHHYCV",
-            target: form.target || "GDGNKYEEYQMFWHYXJA6NGM3573GDSOKQ3L6TTD2DERPELZFHZRDHHYCV",
+            agent: deployer,
+            target: deployer,
             riskScore: score,
             verdict,
             reason: reasons[0],
@@ -193,12 +194,13 @@ export default function WorkflowPage() {
         if (assessData.txHash) {
           txHash = assessData.txHash;
           explorerUrl = assessData.explorerUrl;
-          setStep(4, "done", `Recorded on-chain — tx: ${txHash!.slice(0, 8)}...`);
+          setStep(4, "done", `Recorded on-chain — tx: ${assessData.txHash.slice(0, 10)}...`);
         } else {
-          setStep(4, "done", "Assessment recorded (attestation)");
+          setStep(4, "done", `Attestation response: ${assessData.error || "no hash"}`);
         }
-      } catch {
-        setStep(4, "done", "Attestation skipped (server key not configured)");
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : "unknown error";
+        setStep(4, "done", `Attestation failed: ${msg}`);
       }
 
       setResult({ verdict, score, reasons, txHash, explorerUrl });
