@@ -51,26 +51,18 @@ async function contractCall(contractId, method, args = []) {
   return StellarSdk.scValToNative(sim.result.retval);
 }
 
-// --- x402 Express app ---
-const x402App = express();
-x402App.use(express.json());
+// --- x402 Express router (mounted at /x402) ---
+const x402Router = express.Router();
 
-x402App.use((req, res, nxt) => {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Headers", "*");
-  res.header("Access-Control-Expose-Headers", "PAYMENT-RESPONSE");
-  if (req.method === "OPTIONS") return res.sendStatus(200);
-  nxt();
-});
-
-x402App.get("/x402", (_, res) => {
+// Info endpoint (free, no payment needed)
+x402Router.get("/", (_, res) => {
   res.json({ name: "ShieldStellar x402 API", network: NETWORK, contracts: CONTRACTS });
 });
 
+// x402 payment middleware — gates all routes below
 if (PAY_TO) {
   const facilitatorClient = new HTTPFacilitatorClient({ url: FACILITATOR_URL });
-  x402App.use(
-    "/x402",
+  x402Router.use(
     paymentMiddlewareFromConfig(
       {
         "GET /verdict": { accepts: { scheme: "exact", price: "$0.001", network: NETWORK, payTo: PAY_TO } },
@@ -83,7 +75,8 @@ if (PAY_TO) {
   );
 }
 
-x402App.get("/x402/verdict", async (req, res) => {
+// Protected endpoints
+x402Router.get("/verdict", async (req, res) => {
   try {
     const score = parseInt(req.query.score) || 0;
     const args = [StellarSdk.nativeToScVal(score, { type: "u32" })];
@@ -92,7 +85,7 @@ x402App.get("/x402/verdict", async (req, res) => {
   } catch { res.status(500).json({ error: "Failed to evaluate score" }); }
 });
 
-x402App.get("/x402/stats", async (_, res) => {
+x402Router.get("/stats", async (_, res) => {
   try {
     const agentCount = await contractCall(CONTRACTS.agentRegistry, "get_agent_count");
     const total = await contractCall(CONTRACTS.assessmentRegistry, "get_total_assessments");
@@ -111,12 +104,24 @@ x402App.get("/x402/stats", async (_, res) => {
   } catch { res.json({ agentCount: 0, total: 0, blocked: 0, avgScore: 0, recent: [] }); }
 });
 
-x402App.get("/x402/thresholds", async (_, res) => {
+x402Router.get("/thresholds", async (_, res) => {
   try {
     const result = await contractCall(CONTRACTS.policyManager, "get_thresholds");
     res.json({ low: result[0], medium: result[1] });
   } catch { res.json({ low: 30, medium: 70 }); }
 });
+
+// --- Main Express app ---
+const expressApp = express();
+expressApp.use(express.json());
+expressApp.use((req, res, nxt) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Headers", "*");
+  res.header("Access-Control-Expose-Headers", "PAYMENT-RESPONSE");
+  if (req.method === "OPTIONS") return res.sendStatus(200);
+  nxt();
+});
+expressApp.use("/x402", x402Router);
 
 // --- Next.js app ---
 const app = next({ dev });
@@ -126,7 +131,7 @@ app.prepare().then(() => {
   const server = createServer((req, res) => {
     const parsedUrl = parse(req.url, true);
     if (parsedUrl.pathname?.startsWith("/x402")) {
-      x402App(req, res);
+      expressApp(req, res);
       return;
     }
     handle(req, res, parsedUrl);
@@ -136,6 +141,7 @@ app.prepare().then(() => {
     console.log(`\n  ShieldStellar`);
     console.log(`  http://localhost:${PORT}`);
     console.log(`  x402 API: /x402/*`);
-    console.log(`  Network: ${NETWORK}\n`);
+    console.log(`  Network: ${NETWORK}`);
+    console.log(`  PAY_TO: ${PAY_TO || "(not set — x402 gate disabled)"}\n`);
   });
 });

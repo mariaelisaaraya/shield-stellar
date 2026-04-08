@@ -220,52 +220,36 @@ export default function WorkflowPage() {
     const score = Math.floor(Math.random() * 100);
 
     try {
-      // Step 1: Agent request
-      setStep(0, "active", `GET ${X402_SERVER}/verdict?score=${score}`);
+      // Step 1: Agent request → hits x402 payment gate
+      setStep(0, "active", `GET /x402/verdict?score=${score}`);
       await new Promise((r) => setTimeout(r, 600));
 
-      const firstTry = await fetch(`${X402_SERVER}/verdict?score=${score}`);
+      const firstTry = await fetch(`/x402/verdict?score=${score}`);
+      setStep(0, "done", `Received HTTP ${firstTry.status}${firstTry.status === 402 ? " — payment required" : ""}`);
 
-      if (firstTry.status !== 402) {
-        setStep(0, "done", `Response: ${firstTry.status} (no payment needed)`);
-        const body = await firstTry.json();
-        setSettlement({ verdict: body.verdict, score, cost: "$0.00" });
-        setStepStatuses(FLOW_STEPS.map(() => "done"));
-        setIsDone(true);
-        setIsRunning(false);
-        return;
-      }
-
-      setStep(0, "done", `Received HTTP 402 — payment required`);
-
-      // Step 2: Parse 402 response
+      // Step 2: Show payment requirements from 402
       setStep(1, "active");
       await new Promise((r) => setTimeout(r, 400));
 
-      const paymentHeader = firstTry.headers.get("X-PAYMENT") || "";
-      let paymentInfo = "";
-      try {
-        const body402 = await firstTry.json();
-        paymentInfo = JSON.stringify(body402).slice(0, 120) + "...";
-      } catch {
-        paymentInfo = "Payment requirements received";
+      if (firstTry.status === 402) {
+        setStep(1, "done", `$0.001 USDC required on stellar:testnet`);
+      } else {
+        setStep(1, "done", `No payment gate (PAY_TO not configured on server)`);
       }
-      setStep(1, "done", `$0.001 USDC on stellar:testnet → facilitator`);
 
-      // Step 3: Sign & Pay (this happens server-side via the agent)
-      setStep(2, "active", "Calling agent to sign USDC payment...");
-      await new Promise((r) => setTimeout(r, 500));
-
-      // We call the Next.js API which reads from contracts directly
-      // The real x402 payment happens when the agent-x402 client runs
-      setStep(2, "done", "USDC payment signed and sent to facilitator");
-
-      // Step 4: Facilitate settlement
-      setStep(3, "active", "Facilitator verifying on Stellar Testnet...");
+      // Step 3: Sign & Pay — in production the agent signs automatically
+      setStep(2, "active", "Agent would sign USDC payment here...");
       await new Promise((r) => setTimeout(r, 800));
-      setStep(3, "done", "Payment settled on-chain — fees sponsored by facilitator");
+      setStep(2, "done", firstTry.status === 402
+        ? "Payment gate active — agents pay via @x402/fetch"
+        : "Skipped — accessing free endpoint for demo");
 
-      // Step 5: Get verdict from contract
+      // Step 4: Facilitator settles on Stellar
+      setStep(3, "active", "Facilitator settles payment on Stellar...");
+      await new Promise((r) => setTimeout(r, 600));
+      setStep(3, "done", "x402.org facilitator — fees sponsored on testnet");
+
+      // Step 5: Get verdict from Soroban contract (via free API for demo)
       setStep(4, "active", "Reading verdict from Soroban contract...");
 
       const verdictRes = await fetch(`/api/verdict?score=${score}`);
@@ -276,7 +260,7 @@ export default function WorkflowPage() {
       setSettlement({
         verdict: verdictData.verdict,
         score,
-        cost: "$0.001",
+        cost: firstTry.status === 402 ? "$0.001" : "$0.00 (demo)",
       });
 
       setIsDone(true);
