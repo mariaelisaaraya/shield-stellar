@@ -17,24 +17,8 @@ interface Assessment {
   timestamp: number;
 }
 
-function shortAddr(addr: string) {
-  return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
-}
+import { formatStellarAddress } from "@/lib/stellar";
 
-const AGENT_DISPLAY_NAMES: Record<string, string> = {
-  "0x5e07aaf8f2301e08a3aeddad7326c5a2bb54e929": "aegis-agent.eth",
-  "0xd8da6bf26964af9d7eed9e03e53415d37aa96045": "vitalik.eth",
-};
-
-function getAgentDisplay(address: string): { name: string; isEns: boolean } {
-  const lower = address.toLowerCase();
-  for (const [key, name] of Object.entries(AGENT_DISPLAY_NAMES)) {
-    if (lower.startsWith(key.slice(0, 10).toLowerCase())) {
-      return { name, isEns: true };
-    }
-  }
-  return { name: `${address.slice(0, 6)}...${address.slice(-4)}`, isEns: false };
-}
 
 function formatTime(ts: number) {
   if (ts === 0) return "-";
@@ -62,9 +46,6 @@ export default function HistoryPage() {
       .then((r) => r.json())
       .then((data) => {
         const list = data.assessments || [];
-        if (list.length > 0) {
-          list[0].agent = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045";
-        }
         setAssessments(list);
         setLoading(false);
       })
@@ -147,18 +128,11 @@ export default function HistoryPage() {
                     <td className="px-5 py-3 text-xs font-mono text-right" style={{ color: "#a1a1aa" }}>
                       {row.id}
                     </td>
-                    <td className="px-5 py-3 text-sm">
-                      {(() => {
-                        const display = getAgentDisplay(row.agent);
-                        return display.isEns ? (
-                          <span className="font-medium" style={{ color: "var(--text-1)" }}>{display.name}</span>
-                        ) : (
-                          <span className="font-mono" style={{ color: "var(--text-2)" }}>{display.name}</span>
-                        );
-                      })()}
+                    <td className="px-5 py-3 text-sm font-mono" style={{ color: "#52525b" }}>
+                      {formatStellarAddress(row.agent)}
                     </td>
                     <td className="px-5 py-3 text-sm font-mono" style={{ color: "#52525b" }}>
-                      {shortAddr(row.target)}
+                      {formatStellarAddress(row.target)}
                     </td>
                     <td className="px-5 py-3 text-sm font-mono font-semibold text-right" style={{ color: "#0f0f10" }}>
                       {row.riskScore}
