@@ -64,7 +64,7 @@ const FLOW_STEPS: FlowStep[] = [
   },
 ];
 
-const X402_SERVER = "http://localhost:4002";
+const X402_SERVER = "";
 
 function StepCard({
   step,
@@ -338,7 +338,7 @@ export default function WorkflowPage() {
             { label: "PROTOCOL", value: "x402" },
             { label: "NETWORK", value: "stellar:testnet" },
             { label: "ASSET", value: "USDC" },
-            { label: "SERVER", value: "localhost:4002" },
+            { label: "SERVER", value: "/x402" },
           ].map((item, i) => (
             <div key={item.label} className="flex items-center gap-1.5">
               {i > 0 && <span style={{ color: "#c7d2fe" }}>|</span>}

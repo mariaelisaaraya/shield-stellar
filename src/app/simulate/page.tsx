@@ -53,7 +53,7 @@ interface TraceStep {
 
 const stepNumbers = ["①", "②", "③", "④", "⑤"];
 
-function buildTraceSteps(target: string, amount: string, action: string): TraceStep[] {
+function buildTraceSteps(target: string, amount: string, action: string, paidViaX402: boolean): TraceStep[] {
   const amt = parseFloat(amount) || 0;
   const knownAddress = target.startsWith("G") && target.length === 56;
   const actionLabel = actionTypes.find((a) => a.value === action)?.label || action;
@@ -62,8 +62,8 @@ function buildTraceSteps(target: string, amount: string, action: string): TraceS
     { label: "Resolving target address...", result: knownAddress ? "Valid Stellar address" : "Unknown address", status: knownAddress ? "ok" : "warn" },
     { label: `Evaluating amount (${amount || "0"} XLM)...`, result: amt > 1000 ? "High value" : amt >= 10 ? "Elevated" : "Low value", status: amt > 1000 ? "warn" : amt >= 10 ? "warn" : "ok" },
     { label: `Analyzing action type (${actionLabel})...`, result: action === "contract-call" ? "High risk" : action === "swap" || action === "mint" ? "Requires review" : "Safe action", status: action === "contract-call" ? "warn" : action === "swap" || action === "mint" ? "warn" : "ok" },
-    { label: "Applying policy thresholds...", result: "Thresholds loaded", status: "ok" },
-    { label: "Computing verdict...", result: "Assessment complete", status: "neutral" },
+    { label: "x402 payment gate...", result: paidViaX402 ? "Paid $0.001 USDC" : "Demo mode (free)", status: paidViaX402 ? "ok" : "neutral" },
+    { label: "Computing verdict on Soroban...", result: "Assessment complete", status: "neutral" },
   ];
 }
 
@@ -128,14 +128,28 @@ export default function SimulatePage() {
     setOperatorDecision(null);
     setIsRegistered(false);
 
-    const steps = buildTraceSteps(form.target, form.amount, form.action);
+    const amt = parseFloat(form.amount) || 0;
+    const riskScore = computeRiskScore(form.target, amt, form.action);
+
+    // Try x402 server first — shows payment gate in action
+    let paidViaX402 = false;
+    try {
+      const x402Res = await fetch(`/x402/verdict?score=${riskScore}`);
+      if (x402Res.status === 402) {
+        // x402 gate active — agent needs to pay USDC to access
+        paidViaX402 = false;
+      }
+    } catch {
+      // x402 server not available — continue with free API
+    }
+
+    const steps = buildTraceSteps(form.target, form.amount, form.action, paidViaX402);
     setTraceSteps(steps);
     setTraceVisible(true);
     setTraceProgress(0);
 
     try {
-      const amt = parseFloat(form.amount) || 0;
-      const riskScore = computeRiskScore(form.target, amt, form.action);
+      // Use free API for the demo (agents pay via x402 in production)
       const response = await fetch(`/api/verdict?score=${riskScore}`);
       const json = await response.json();
       if (json.error) throw new Error(json.error);
