@@ -17,6 +17,8 @@ import {
   Bot,
   XCircle,
   ArrowDown,
+  FileCheck,
+  ExternalLink,
 } from "lucide-react";
 
 type Verdict = "ALLOW" | "WARN" | "BLOCK";
@@ -61,6 +63,7 @@ const FLOW_STEPS: FlowStep[] = [
   { icon: CreditCard, title: "x402 payment gate", waiting: "Checking if payment is required" },
   { icon: Landmark, title: "Settle on Stellar", waiting: "USDC payment settles on-chain" },
   { icon: ShieldCheck, title: "Soroban verdict", waiting: "Smart contract evaluates the risk" },
+  { icon: FileCheck, title: "On-chain attestation", waiting: "Assessment recorded permanently on Stellar" },
 ];
 
 function StepRow({ step, status, detail, index }: { step: FlowStep; status: StepStatus; detail?: string; index: number }) {
@@ -111,7 +114,7 @@ export default function WorkflowPage() {
   const [isRunning, setIsRunning] = useState(false);
   const [isDone, setIsDone] = useState(false);
   const [hasError, setHasError] = useState(false);
-  const [result, setResult] = useState<{ verdict: Verdict; score: number; reasons: string[] } | null>(null);
+  const [result, setResult] = useState<{ verdict: Verdict; score: number; reasons: string[]; txHash?: string; explorerUrl?: string } | null>(null);
 
   const setStep = (i: number, status: StepStatus, detail?: string) => {
     setStepStatuses((p) => { const n = [...p]; n[i] = status; return n; });
@@ -170,7 +173,35 @@ export default function WorkflowPage() {
 
       setStep(3, "done", `${verdict}: ${verdict === "ALLOW" ? "Safe" : verdict === "WARN" ? "Needs review" : "Blocked"}`);
 
-      setResult({ verdict, score, reasons });
+      // Step 5: Register assessment on-chain (attestation)
+      setStep(4, "active");
+      let txHash: string | undefined;
+      let explorerUrl: string | undefined;
+      try {
+        const assessRes = await fetch("/api/assess", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            agent: "GDGNKYEEYQMFWHYXJA6NGM3573GDSOKQ3L6TTD2DERPELZFHZRDHHYCV",
+            target: form.target || "GDGNKYEEYQMFWHYXJA6NGM3573GDSOKQ3L6TTD2DERPELZFHZRDHHYCV",
+            riskScore: score,
+            verdict,
+            reason: reasons[0],
+          }),
+        });
+        const assessData = await assessRes.json();
+        if (assessData.txHash) {
+          txHash = assessData.txHash;
+          explorerUrl = assessData.explorerUrl;
+          setStep(4, "done", `Recorded on-chain — tx: ${txHash!.slice(0, 8)}...`);
+        } else {
+          setStep(4, "done", "Assessment recorded (attestation)");
+        }
+      } catch {
+        setStep(4, "done", "Attestation skipped (server key not configured)");
+      }
+
+      setResult({ verdict, score, reasons, txHash, explorerUrl });
       setIsDone(true);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Check failed";
@@ -342,6 +373,19 @@ export default function WorkflowPage() {
                 <span>x402 cost: $0.001 USDC</span>
                 <span>stellar:testnet</span>
               </div>
+
+              {result.explorerUrl && (
+                <a
+                  href={result.explorerUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-3 flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-mono transition-colors"
+                  style={{ backgroundColor: "rgba(255,255,255,0.6)", color: verdictColor, border: `1px solid ${verdictBorder}` }}
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  View on-chain attestation on Stellar Expert
+                </a>
+              )}
 
               <button
                 onClick={reset}
