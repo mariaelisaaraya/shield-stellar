@@ -75,6 +75,15 @@ export default function HistoryPage() {
         <p style={{ color: "var(--text-3)", fontSize: "14px", marginTop: "4px" }}>
           Immutable audit trail of every agent decision on Stellar Testnet
         </p>
+        <a
+          href="https://stellar.expert/explorer/testnet/contract/CCDUJPZRP6Y62BNDIT3JBSLLOOX4IZTAXHTEWL6AO7NGCTF2P4KNRWST"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 mt-2 text-xs font-mono"
+          style={{ color: "#5b5cf6" }}
+        >
+          View contract on Stellar Expert →
+        </a>
       </div>
 
       {/* Table */}
