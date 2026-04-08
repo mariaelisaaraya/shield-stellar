@@ -56,9 +56,8 @@ export default function HomePage() {
   }, []);
 
   const cards: { label: string; value: number; icon: typeof Bot | null; sub: string; subColor?: string }[] = [
-    { label: "REGISTERED AGENTS", value: stats.agentCount, icon: Bot, sub: "active on Stellar Testnet" },
-    { label: "TOTAL ASSESSMENTS", value: stats.total, icon: null, sub: "risk evaluations recorded on-chain" },
-    { label: "BLOCKED ACTIONS", value: stats.blocked, icon: ShieldOff, sub: "transactions prevented" },
+    { label: "RISK CHECKS", value: stats.total, icon: null, sub: "assessments recorded on-chain" },
+    { label: "BLOCKED", value: stats.blocked, icon: ShieldOff, sub: "transactions prevented" },
     { label: "AVG RISK SCORE", value: stats.avgScore, icon: Activity, sub: "across all assessments" },
   ];
 
