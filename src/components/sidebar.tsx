@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
-  Bot,
   Shield,
   Zap,
   Clock,
@@ -18,7 +17,6 @@ import { cn } from "@/lib/utils";
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/workflow", label: "Risk Check", icon: Zap },
-  { href: "/agents", label: "Agents", icon: Bot },
   { href: "/policy", label: "Policy", icon: Shield },
   { href: "/history", label: "History", icon: Clock },
 ];
