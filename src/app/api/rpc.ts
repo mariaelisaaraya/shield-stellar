@@ -1,9 +1,11 @@
-// Stellar Soroban RPC helpers — reads from deployed contracts on testnet.
+// Stellar Soroban RPC helpers — reads from deployed contracts via HTTP.
 // Read operations are free on Stellar (simulation only, no tx needed).
 
-import { CONTRACTS } from "@/lib/contracts-stellar";
+import { CONTRACTS, DEPLOYER } from "@/lib/contracts-stellar";
+import * as StellarSdk from "@stellar/stellar-sdk";
 
-const SOROBAN_RPC = "https://soroban-testnet.stellar.org";
+const SOROBAN_RPC_URL = "https://soroban-testnet.stellar.org";
+const NETWORK_PASSPHRASE = StellarSdk.Networks.TESTNET;
 
 export interface Assessment {
   id: number;
@@ -15,50 +17,62 @@ export interface Assessment {
   timestamp: number;
 }
 
-// --- Soroban RPC call helper ---
+// --- Soroban contract read via simulateTransaction ---
 
-async function sorobanSimulate(contractId: string, method: string, args: unknown[] = []) {
-  const res = await fetch(SOROBAN_RPC, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      jsonrpc: "2.0",
-      id: 1,
-      method: "simulateTransaction",
-      params: { /* placeholder — we use CLI for now */ },
-    }),
-  });
-  return res.json();
+function getRpcServer() {
+  return new StellarSdk.rpc.Server(SOROBAN_RPC_URL);
 }
 
-// For server-side reads we shell out to stellar CLI which handles
-// XDR encoding/decoding. This is simpler and more reliable than
-// manually building Soroban XDR for read calls.
+function scValToNative(val: StellarSdk.xdr.ScVal): unknown {
+  return StellarSdk.scValToNative(val);
+}
 
-async function contractRead(contractId: string, fn: string, args: string[] = []): Promise<string> {
-  const { execSync } = await import("child_process");
-  const argsStr = args.join(" ");
-  const cmd = `stellar contract invoke --id ${contractId} --network testnet --source deployer -- ${fn} ${argsStr} 2>&1`;
-  try {
-    const output = execSync(cmd, { encoding: "utf-8", timeout: 15000 }).trim();
-    // Filter out CLI info messages (e.g. "ℹ️  Simulation identified as read-only...")
-    const lines = output.split("\n");
-    const dataLine = lines.filter((l) => !l.startsWith("ℹ️") && !l.startsWith("⚠️")).join("\n").trim();
-    return dataLine || output;
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "contract read failed";
-    console.error(`contractRead error (${fn}):`, message);
-    throw new Error(message);
+async function contractCall(
+  contractId: string,
+  method: string,
+  args: StellarSdk.xdr.ScVal[] = []
+): Promise<StellarSdk.xdr.ScVal> {
+  const server = getRpcServer();
+  const contract = new StellarSdk.Contract(contractId);
+
+  // Build a transaction to simulate (not submit)
+  const sourceAccount = await server.getAccount(DEPLOYER).catch(() => {
+    // If deployer account fetch fails, use a dummy account for simulation
+    return new StellarSdk.Account(DEPLOYER, "0");
+  });
+
+  const tx = new StellarSdk.TransactionBuilder(sourceAccount, {
+    fee: "100",
+    networkPassphrase: NETWORK_PASSPHRASE,
+  })
+    .addOperation(contract.call(method, ...args))
+    .setTimeout(30)
+    .build();
+
+  const simResponse = await server.simulateTransaction(tx);
+
+  if (StellarSdk.rpc.Api.isSimulationError(simResponse)) {
+    throw new Error(`Simulation error: ${JSON.stringify(simResponse)}`);
   }
+
+  if (!StellarSdk.rpc.Api.isSimulationSuccess(simResponse)) {
+    throw new Error("Simulation failed");
+  }
+
+  const result = simResponse.result;
+  if (!result) throw new Error("No result from simulation");
+
+  return result.retval;
 }
 
 // --- AgentRegistry reads ---
 
 export async function getAgentCount(): Promise<number> {
   try {
-    const result = await contractRead(CONTRACTS.agentRegistry, "get_agent_count");
-    return parseInt(result, 10) || 0;
-  } catch {
+    const retval = await contractCall(CONTRACTS.agentRegistry, "get_agent_count");
+    return scValToNative(retval) as number;
+  } catch (err) {
+    console.error("getAgentCount error:", err);
     return 0;
   }
 }
@@ -67,25 +81,22 @@ export async function getAgentCount(): Promise<number> {
 
 export async function getThresholds(): Promise<{ low: number; medium: number }> {
   try {
-    const result = await contractRead(CONTRACTS.policyManager, "get_thresholds");
-    // Result format: [30,70]
-    const parsed = JSON.parse(result);
-    return { low: parsed[0], medium: parsed[1] };
-  } catch {
+    const retval = await contractCall(CONTRACTS.policyManager, "get_thresholds");
+    const result = scValToNative(retval) as [number, number];
+    return { low: result[0], medium: result[1] };
+  } catch (err) {
+    console.error("getThresholds error:", err);
     return { low: 30, medium: 70 };
   }
 }
 
 export async function getVerdict(riskScore: number): Promise<string> {
   try {
-    const result = await contractRead(
-      CONTRACTS.policyManager,
-      "evaluate_score",
-      [`--score ${riskScore}`]
-    );
-    // Result format: "ALLOW" (with quotes)
-    return result.replace(/"/g, "");
-  } catch {
+    const args = [StellarSdk.nativeToScVal(riskScore, { type: "u32" })];
+    const retval = await contractCall(CONTRACTS.policyManager, "evaluate_score", args);
+    return scValToNative(retval) as string;
+  } catch (err) {
+    console.error("getVerdict error:", err);
     // Fallback to local calculation
     const { low, medium } = await getThresholds();
     if (riskScore >= medium) return "BLOCK";
@@ -98,31 +109,30 @@ export async function getVerdict(riskScore: number): Promise<string> {
 
 export async function getTotalAssessments(): Promise<number> {
   try {
-    const result = await contractRead(CONTRACTS.assessmentRegistry, "get_total_assessments");
-    return parseInt(result, 10) || 0;
-  } catch {
+    const retval = await contractCall(CONTRACTS.assessmentRegistry, "get_total_assessments");
+    return scValToNative(retval) as number;
+  } catch (err) {
+    console.error("getTotalAssessments error:", err);
     return 0;
   }
 }
 
 export async function getAssessment(id: number): Promise<Assessment | null> {
   try {
-    const result = await contractRead(
-      CONTRACTS.assessmentRegistry,
-      "get_assessment",
-      [`--id ${id}`]
-    );
-    const data = JSON.parse(result);
+    const args = [StellarSdk.nativeToScVal(id, { type: "u32" })];
+    const retval = await contractCall(CONTRACTS.assessmentRegistry, "get_assessment", args);
+    const data = scValToNative(retval) as Record<string, unknown>;
     return {
-      id: data.id,
-      agent: data.agent,
-      target: data.target,
-      riskScore: data.risk_score,
-      verdict: data.verdict,
-      reason: data.reason,
-      timestamp: data.timestamp,
+      id: data.id as number,
+      agent: data.agent as string,
+      target: data.target as string,
+      riskScore: data.risk_score as number,
+      verdict: data.verdict as string,
+      reason: data.reason as string,
+      timestamp: Number(data.timestamp),
     };
-  } catch {
+  } catch (err) {
+    console.error(`getAssessment(${id}) error:`, err);
     return null;
   }
 }
