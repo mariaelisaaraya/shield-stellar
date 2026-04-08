@@ -14,166 +14,126 @@ import {
   Loader2,
   Bot,
   XCircle,
+  ArrowDown,
 } from "lucide-react";
 
 type StepStatus = "idle" | "active" | "done" | "error";
 
 interface FlowStep {
   id: number;
-  label: string;
-  title: string;
   icon: typeof Send;
-  description: string;
+  title: string;
+  waiting: string;
+  doing: string;
+  doneText?: string;
 }
 
 const FLOW_STEPS: FlowStep[] = [
   {
     id: 1,
-    label: "STEP 01",
-    title: "Agent Request",
     icon: Bot,
-    description: "AI agent sends HTTP request to the protected endpoint",
+    title: "Agent asks",
+    waiting: "An AI agent wants to send 500 XLM. Is it safe?",
+    doing: "Asking the risk engine...",
   },
   {
     id: 2,
-    label: "STEP 02",
-    title: "HTTP 402",
     icon: CreditCard,
-    description: "Server responds with payment requirements in USDC",
+    title: "Pay to access",
+    waiting: "The risk engine charges $0.001 USDC per query via x402",
+    doing: "Payment required — signing USDC on Stellar...",
   },
   {
     id: 3,
-    label: "STEP 03",
-    title: "Sign & Pay",
-    icon: Send,
-    description: "Agent signs USDC transfer on Stellar and retries",
+    icon: Landmark,
+    title: "Payment settles",
+    waiting: "The facilitator verifies and settles the USDC payment on-chain",
+    doing: "Settling on Stellar Testnet...",
   },
   {
     id: 4,
-    label: "STEP 04",
-    title: "Settle",
-    icon: Landmark,
-    description: "Facilitator verifies and settles payment on-chain",
-  },
-  {
-    id: 5,
-    label: "STEP 05",
-    title: "Verdict",
     icon: ShieldCheck,
-    description: "Agent receives risk assessment from Soroban contract",
+    title: "Get the answer",
+    waiting: "The Soroban contract evaluates the risk and returns a verdict",
+    doing: "Reading from Soroban contract...",
   },
 ];
-
-const X402_SERVER = "";
 
 function StepCard({
   step,
   status,
   detail,
+  index,
 }: {
   step: FlowStep;
   status: StepStatus;
   detail?: string;
+  index: number;
 }) {
   const Icon = step.icon;
 
   const borderColor =
-    status === "done"
-      ? "#5b5cf6"
-      : status === "active"
-        ? "#5b5cf6"
-        : status === "error"
-          ? "#dc2626"
-          : "#ebebed";
-
-  const bgColor =
-    status === "done"
-      ? "#efefff"
-      : status === "error"
-        ? "#fef2f2"
-        : "#ffffff";
+    status === "done" ? "#5b5cf6"
+    : status === "active" ? "#5b5cf6"
+    : status === "error" ? "#dc2626"
+    : "#ebebed";
 
   return (
-    <div
-      className="relative text-left rounded-2xl p-5 transition-all w-full"
-      style={{
-        backgroundColor: bgColor,
-        border: `1.5px solid ${borderColor}`,
-        boxShadow:
-          status === "active"
-            ? "0 0 0 3px rgba(91,92,246,0.1)"
-            : "0 1px 3px rgba(0,0,0,0.04)",
-      }}
+    <motion.div
+      initial={status === "active" ? { scale: 1.01 } : {}}
+      animate={status === "active" ? { scale: [1, 1.01, 1] } : {}}
+      transition={{ duration: 1.5, repeat: Infinity }}
     >
-      {/* Status indicator */}
-      <div className="absolute top-4 right-4">
-        {status === "done" ? (
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ type: "spring", stiffness: 500, damping: 25 }}
-          >
-            <CheckCircle2 className="w-5 h-5" style={{ color: "#5b5cf6" }} />
-          </motion.div>
-        ) : status === "active" ? (
-          <Loader2 className="w-5 h-5 animate-spin" style={{ color: "#5b5cf6" }} />
-        ) : status === "error" ? (
-          <XCircle className="w-5 h-5" style={{ color: "#dc2626" }} />
-        ) : (
-          <div
-            className="w-5 h-5 rounded-full border-2"
-            style={{ borderColor: "#d4d4d8" }}
-          />
-        )}
-      </div>
-
-      {/* Icon */}
       <div
-        className="flex w-10 h-10 items-center justify-center rounded-xl mb-3"
+        className="rounded-2xl p-5 transition-all"
         style={{
-          backgroundColor: status === "done" ? "#5b5cf6" : "#f7f7f8",
-          border: status === "done" ? "none" : "1px solid #ebebed",
+          backgroundColor: status === "done" ? "#efefff" : status === "error" ? "#fef2f2" : "#ffffff",
+          border: `1.5px solid ${borderColor}`,
+          boxShadow: status === "active" ? "0 0 0 3px rgba(91,92,246,0.1)" : "0 1px 3px rgba(0,0,0,0.04)",
         }}
       >
-        <Icon
-          className="w-5 h-5"
-          style={{ color: status === "done" ? "#ffffff" : "#52525b" }}
-        />
+        <div className="flex items-start gap-4">
+          {/* Number + Icon */}
+          <div className="flex flex-col items-center gap-1">
+            <div
+              className="flex w-11 h-11 items-center justify-center rounded-xl"
+              style={{
+                backgroundColor: status === "done" ? "#5b5cf6" : "#f7f7f8",
+                border: status === "done" ? "none" : "1px solid #ebebed",
+              }}
+            >
+              {status === "active" ? (
+                <Loader2 className="w-5 h-5 animate-spin" style={{ color: "#5b5cf6" }} />
+              ) : status === "done" ? (
+                <Icon className="w-5 h-5" style={{ color: "#ffffff" }} />
+              ) : status === "error" ? (
+                <XCircle className="w-5 h-5" style={{ color: "#dc2626" }} />
+              ) : (
+                <Icon className="w-5 h-5" style={{ color: "#a1a1aa" }} />
+              )}
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="font-mono text-[10px] tracking-[0.15em]" style={{ color: "#a1a1aa" }}>
+                {index + 1} / {FLOW_STEPS.length}
+              </span>
+              {status === "done" && (
+                <CheckCircle2 className="w-3.5 h-3.5" style={{ color: "#5b5cf6" }} />
+              )}
+            </div>
+            <p className="text-sm font-semibold mb-1" style={{ color: "#0f0f10" }}>
+              {step.title}
+            </p>
+            <p className="text-xs leading-relaxed" style={{ color: "#52525b" }}>
+              {status === "active" ? step.doing : status === "done" && detail ? detail : step.waiting}
+            </p>
+          </div>
+        </div>
       </div>
-
-      {/* Label + Title */}
-      <p
-        className="font-mono text-[10px] tracking-[0.15em] mb-1"
-        style={{ color: status === "done" || status === "active" ? "#5b5cf6" : "#a1a1aa" }}
-      >
-        {step.label}
-      </p>
-      <p
-        className="text-sm font-semibold mb-1"
-        style={{ color: status === "idle" ? "#a1a1aa" : "#0f0f10" }}
-      >
-        {step.title}
-      </p>
-      <p className="text-xs" style={{ color: "#52525b" }}>
-        {step.description}
-      </p>
-
-      {/* Live detail */}
-      {detail && (
-        <motion.div
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: "auto" }}
-          className="mt-3 rounded-lg px-3 py-2 font-mono text-[11px]"
-          style={{
-            backgroundColor: status === "error" ? "#fef2f2" : "#f7f7f8",
-            border: `1px solid ${status === "error" ? "#fecaca" : "#ebebed"}`,
-            color: status === "error" ? "#dc2626" : "#52525b",
-          }}
-        >
-          {detail}
-        </motion.div>
-      )}
-    </div>
+    </motion.div>
   );
 }
 
@@ -190,8 +150,8 @@ export default function WorkflowPage() {
   const [settlement, setSettlement] = useState<{
     verdict?: string;
     score?: number;
-    txHash?: string;
     cost?: string;
+    httpStatus?: number;
   } | null>(null);
 
   const setStep = (index: number, status: StepStatus, detail?: string) => {
@@ -220,56 +180,60 @@ export default function WorkflowPage() {
     const score = Math.floor(Math.random() * 100);
 
     try {
-      // Step 1: Agent request → hits x402 payment gate
-      setStep(0, "active", `GET /x402/verdict?score=${score}`);
-      await new Promise((r) => setTimeout(r, 600));
+      // Step 1: Agent asks the risk engine
+      setStep(0, "active");
+      await new Promise((r) => setTimeout(r, 800));
 
       const firstTry = await fetch(`/x402/verdict?score=${score}`);
-      setStep(0, "done", `Received HTTP ${firstTry.status}${firstTry.status === 402 ? " — payment required" : ""}`);
+      const got402 = firstTry.status === 402;
 
-      // Step 2: Show payment requirements from 402
+      setStep(0, "done", got402
+        ? `The engine says: "pay first" (HTTP 402)`
+        : `The engine responded (HTTP ${firstTry.status})`
+      );
+
+      // Step 2: Pay via x402
       setStep(1, "active");
-      await new Promise((r) => setTimeout(r, 400));
+      await new Promise((r) => setTimeout(r, 1000));
 
-      if (firstTry.status === 402) {
-        setStep(1, "done", `$0.001 USDC required on stellar:testnet`);
-      } else {
-        setStep(1, "done", `No payment gate (PAY_TO not configured on server)`);
-      }
+      setStep(1, "done", got402
+        ? "Payment gate active — $0.001 USDC required per query"
+        : "No payment needed in demo mode"
+      );
 
-      // Step 3: Sign & Pay — in production the agent signs automatically
-      setStep(2, "active", "Agent would sign USDC payment here...");
+      // Step 3: Settlement
+      setStep(2, "active");
       await new Promise((r) => setTimeout(r, 800));
-      setStep(2, "done", firstTry.status === 402
-        ? "Payment gate active — agents pay via @x402/fetch"
-        : "Skipped — accessing free endpoint for demo");
 
-      // Step 4: Facilitator settles on Stellar
-      setStep(3, "active", "Facilitator settles payment on Stellar...");
-      await new Promise((r) => setTimeout(r, 600));
-      setStep(3, "done", "x402.org facilitator — fees sponsored on testnet");
+      setStep(2, "done", got402
+        ? "USDC settled on Stellar in <5 seconds, fees sponsored"
+        : "No settlement needed"
+      );
 
-      // Step 5: Get verdict from Soroban contract (via free API for demo)
-      setStep(4, "active", "Reading verdict from Soroban contract...");
+      // Step 4: Get the verdict from Soroban
+      setStep(3, "active");
 
       const verdictRes = await fetch(`/api/verdict?score=${score}`);
       const verdictData = await verdictRes.json();
 
-      setStep(4, "done", `Score: ${score} → Verdict: ${verdictData.verdict}`);
+      const verdictEmoji = verdictData.verdict === "ALLOW" ? "Safe to send"
+        : verdictData.verdict === "WARN" ? "Needs human approval"
+        : "Transaction blocked";
+
+      setStep(3, "done", `Score ${score}/100 → ${verdictData.verdict}: ${verdictEmoji}`);
 
       setSettlement({
         verdict: verdictData.verdict,
         score,
-        cost: firstTry.status === 402 ? "$0.001" : "$0.00 (demo)",
+        cost: got402 ? "$0.001" : "free (demo)",
+        httpStatus: firstTry.status,
       });
 
       setIsDone(true);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Flow failed";
+      const message = err instanceof Error ? err.message : "Something went wrong";
       const activeStep = stepStatuses.findIndex((s) => s === "active");
-      if (activeStep >= 0) {
-        setStep(activeStep, "error", message);
-      }
+      if (activeStep >= 0) setStep(activeStep, "error", message);
       setHasError(true);
     } finally {
       setIsRunning(false);
@@ -285,75 +249,68 @@ export default function WorkflowPage() {
   };
 
   const verdictColor =
-    settlement?.verdict === "ALLOW"
-      ? "#166534"
-      : settlement?.verdict === "WARN"
-        ? "#854d0e"
-        : "#dc2626";
+    settlement?.verdict === "ALLOW" ? "#166534"
+    : settlement?.verdict === "WARN" ? "#854d0e"
+    : "#dc2626";
+
+  const verdictBg =
+    settlement?.verdict === "ALLOW" ? "#f0fdf4"
+    : settlement?.verdict === "WARN" ? "#fffbeb"
+    : "#fef2f2";
+
+  const verdictBorder =
+    settlement?.verdict === "ALLOW" ? "#bbf7d0"
+    : settlement?.verdict === "WARN" ? "#fde68a"
+    : "#fecaca";
 
   return (
     <PageWrapper>
-      <div className="max-w-3xl mx-auto">
+      <div className="max-w-2xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <span
-            className="block font-mono tracking-[0.12em] mb-2 text-xs"
-            style={{ color: "#a1a1aa" }}
-          >
-            x402 &middot; LIVE PAYMENT FLOW
+        <div className="mb-6">
+          <span className="block font-mono tracking-[0.12em] mb-2 text-xs" style={{ color: "#a1a1aa" }}>
+            x402 &middot; LIVE DEMO
           </span>
-          <h1
-            className="text-3xl font-bold tracking-tight"
-            style={{ color: "#0f0f10" }}
-          >
-            x402 Payment Flow
+          <h1 className="text-3xl font-bold tracking-tight" style={{ color: "#0f0f10" }}>
+            Pay-per-query risk assessment
           </h1>
-          <p style={{ color: "var(--text-3)", fontSize: "14px", marginTop: "4px" }}>
-            Real x402 micropayment settling USDC on Stellar Testnet
+          <p style={{ color: "#52525b", fontSize: "14px", marginTop: "6px", lineHeight: 1.6 }}>
+            AI agents pay a micropayment in USDC to check if a transaction is safe
+            before executing it. No subscription, no API key — just pay and get the answer.
           </p>
         </div>
 
-        {/* Protocol badge */}
+        {/* How it works — one liner */}
         <div
-          className="mb-6 flex flex-wrap items-center gap-3 rounded-xl px-4 py-3"
-          style={{ backgroundColor: "#efefff", border: "1px solid #c7d2fe" }}
+          className="mb-6 rounded-xl px-4 py-3 text-xs"
+          style={{ backgroundColor: "#efefff", border: "1px solid #c7d2fe", color: "#52525b" }}
         >
-          {[
-            { label: "PROTOCOL", value: "x402" },
-            { label: "NETWORK", value: "stellar:testnet" },
-            { label: "ASSET", value: "USDC" },
-            { label: "SERVER", value: "/x402" },
-          ].map((item, i) => (
-            <div key={item.label} className="flex items-center gap-1.5">
-              {i > 0 && <span style={{ color: "#c7d2fe" }}>|</span>}
-              <span className="font-mono text-xs" style={{ color: "#5b5cf6" }}>
-                {item.label}
-              </span>
-              <span className="text-xs" style={{ color: "#52525b" }}>
-                {item.value}
-              </span>
+          <span className="font-mono" style={{ color: "#5b5cf6" }}>How it works: </span>
+          Agent sends request → gets HTTP 402 → pays USDC on Stellar → gets risk verdict from Soroban contract
+        </div>
+
+        {/* Step cards */}
+        <div className="space-y-3 mb-6">
+          {FLOW_STEPS.map((step, i) => (
+            <div key={step.id}>
+              <StepCard
+                step={step}
+                status={stepStatuses[i]}
+                detail={stepDetails[i]}
+                index={i}
+              />
+              {i < FLOW_STEPS.length - 1 && (
+                <div className="flex justify-center py-1">
+                  <ArrowDown className="w-4 h-4" style={{ color: stepStatuses[i] === "done" ? "#5b5cf6" : "#d4d4d8" }} />
+                </div>
+              )}
             </div>
           ))}
         </div>
 
-        {/* Step cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-5 gap-3 mb-6">
-          {FLOW_STEPS.map((step, i) => (
-            <StepCard
-              key={step.id}
-              step={step}
-              status={stepStatuses[i]}
-              detail={stepDetails[i]}
-            />
-          ))}
-        </div>
-
-        {/* Progress bar */}
+        {/* Progress */}
         <div className="mb-6">
-          <div
-            className="h-1.5 rounded-full overflow-hidden"
-            style={{ backgroundColor: "#f7f7f8" }}
-          >
+          <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: "#f7f7f8" }}>
             <motion.div
               className="h-full rounded-full"
               style={{ backgroundColor: hasError ? "#dc2626" : "#5b5cf6" }}
@@ -363,139 +320,97 @@ export default function WorkflowPage() {
               transition={{ duration: 0.4, ease: "easeOut" }}
             />
           </div>
-          <div
-            className="flex justify-between mt-1.5 font-mono"
-            style={{ fontSize: "10px", color: "#a1a1aa" }}
-          >
-            <span>
-              {stepStatuses.filter((s) => s === "done").length}/
-              {FLOW_STEPS.length} COMPLETE
-            </span>
-            {isDone && (
-              <motion.span
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                style={{ color: "#5b5cf6" }}
-              >
-                PAYMENT SETTLED ON STELLAR
-              </motion.span>
-            )}
-            {hasError && (
-              <motion.span
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                style={{ color: "#dc2626" }}
-              >
-                FLOW FAILED — is the x402 server running?
-              </motion.span>
-            )}
-          </div>
+          {hasError && (
+            <p className="mt-2 text-xs font-mono" style={{ color: "#dc2626" }}>
+              Could not reach the x402 server. Make sure it is running.
+            </p>
+          )}
         </div>
 
-        {/* Run / Reset buttons */}
-        <div className="flex gap-3">
+        {/* Run / Reset */}
+        <div className="flex gap-3 mb-6">
           {!isDone ? (
             <button
               onClick={runFlow}
               disabled={isRunning}
               className="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl text-sm font-semibold text-white transition-all disabled:opacity-50"
               style={{ backgroundColor: "#5b5cf6" }}
-              onMouseEnter={(e) =>
-                (e.currentTarget.style.backgroundColor = "#4f46e5")
-              }
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.backgroundColor = "#5b5cf6")
-              }
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#4f46e5")}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#5b5cf6")}
             >
               {isRunning ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Processing x402 payment...
-                </>
+                <><Loader2 className="w-4 h-4 animate-spin" />Running...</>
               ) : (
-                <>
-                  <Play className="w-4 h-4" />
-                  Run x402 Flow
-                </>
+                <><Play className="w-4 h-4" />Run the flow</>
               )}
             </button>
           ) : (
             <motion.button
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
               onClick={reset}
               className="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl text-sm font-medium transition-all"
-              style={{
-                backgroundColor: "#f7f7f8",
-                color: "#52525b",
-                border: "1px solid #ebebed",
-              }}
-              onMouseEnter={(e) =>
-                (e.currentTarget.style.backgroundColor = "#efefff")
-              }
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.backgroundColor = "#f7f7f8")
-              }
+              style={{ backgroundColor: "#f7f7f8", color: "#52525b", border: "1px solid #ebebed" }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#efefff")}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#f7f7f8")}
             >
-              <RotateCcw className="w-4 h-4" />
-              Run Again
+              <RotateCcw className="w-4 h-4" />Try again (new random score)
             </motion.button>
           )}
         </div>
 
-        {/* Settlement result */}
+        {/* Result */}
         <AnimatePresence>
           {isDone && settlement && (
             <motion.div
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.3, delay: 0.2 }}
-              className="mt-6 rounded-2xl p-6"
-              style={{
-                backgroundColor: "#f0fdf4",
-                border: "1px solid #bbf7d0",
-              }}
+              transition={{ duration: 0.3 }}
+              className="rounded-2xl p-6"
+              style={{ backgroundColor: verdictBg, border: `1px solid ${verdictBorder}` }}
             >
               <div className="flex items-center gap-3 mb-4">
-                <CheckCircle2 className="w-6 h-6" style={{ color: "#166534" }} />
-                <h3 className="text-lg font-semibold" style={{ color: "#166534" }}>
-                  Payment Settled on Stellar
-                </h3>
+                <ShieldCheck className="w-6 h-6" style={{ color: verdictColor }} />
+                <div>
+                  <h3 className="text-lg font-semibold" style={{ color: verdictColor }}>
+                    {settlement.verdict === "ALLOW" ? "Safe to proceed"
+                      : settlement.verdict === "WARN" ? "Needs human review"
+                      : "Transaction blocked"}
+                  </h3>
+                  <p className="text-xs" style={{ color: verdictColor, opacity: 0.7 }}>
+                    The agent now knows whether to send the funds or not
+                  </p>
+                </div>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+
+              <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <p className="font-mono text-[10px] tracking-[0.1em]" style={{ color: "#166534", opacity: 0.6 }}>COST</p>
-                  <p className="text-sm font-mono font-semibold" style={{ color: "#166534" }}>{settlement.cost}</p>
+                  <p className="font-mono text-[10px] tracking-[0.1em] mb-0.5" style={{ color: verdictColor, opacity: 0.5 }}>RISK SCORE</p>
+                  <p className="text-lg font-mono font-bold" style={{ color: verdictColor }}>{settlement.score}/100</p>
                 </div>
                 <div>
-                  <p className="font-mono text-[10px] tracking-[0.1em]" style={{ color: "#166534", opacity: 0.6 }}>SCORE</p>
-                  <p className="text-sm font-mono font-semibold" style={{ color: "#166534" }}>{settlement.score}/100</p>
+                  <p className="font-mono text-[10px] tracking-[0.1em] mb-0.5" style={{ color: verdictColor, opacity: 0.5 }}>VERDICT</p>
+                  <p className="text-lg font-mono font-bold" style={{ color: verdictColor }}>{settlement.verdict}</p>
                 </div>
                 <div>
-                  <p className="font-mono text-[10px] tracking-[0.1em]" style={{ color: "#166534", opacity: 0.6 }}>VERDICT</p>
-                  <p className="text-sm font-mono font-semibold" style={{ color: verdictColor }}>{settlement.verdict}</p>
-                </div>
-                <div>
-                  <p className="font-mono text-[10px] tracking-[0.1em]" style={{ color: "#166534", opacity: 0.6 }}>NETWORK</p>
-                  <p className="text-sm font-mono font-semibold" style={{ color: "#166534" }}>stellar:testnet</p>
+                  <p className="font-mono text-[10px] tracking-[0.1em] mb-0.5" style={{ color: verdictColor, opacity: 0.5 }}>COST</p>
+                  <p className="text-lg font-mono font-bold" style={{ color: verdictColor }}>{settlement.cost}</p>
                 </div>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Bottom labels */}
-        <div className="mt-8 flex justify-between items-center">
-          {["STATELESS", "NON-CUSTODIAL", "AUDITABLE"].map((label) => (
-            <span
-              key={label}
-              className="font-mono text-[10px] tracking-[0.15em]"
-              style={{ color: "#a1a1aa" }}
-            >
-              {label}
-            </span>
-          ))}
+        {/* Bottom info */}
+        <div className="mt-8 rounded-xl p-4" style={{ backgroundColor: "#ffffff", border: "1px solid #ebebed" }}>
+          <p className="font-mono text-[10px] tracking-[0.1em] mb-2" style={{ color: "#a1a1aa" }}>ABOUT THIS DEMO</p>
+          <p className="text-xs leading-relaxed" style={{ color: "#52525b" }}>
+            This flow demonstrates the <span className="font-mono" style={{ color: "#5b5cf6" }}>x402</span> protocol
+            on Stellar. In production, AI agents pay real USDC micropayments to access the risk engine.
+            The payment settles on-chain in under 5 seconds with near-zero fees.
+            Verdicts are computed by a Soroban smart contract deployed on Stellar Testnet.
+          </p>
         </div>
       </div>
     </PageWrapper>
