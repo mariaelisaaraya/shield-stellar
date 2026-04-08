@@ -157,7 +157,7 @@ export default function HomePage() {
         ) : recent.length === 0 ? (
           <div className="text-center py-8 text-sm" style={{ color: "#a1a1aa" }}>
             No assessments yet.{" "}
-            <Link href="/simulate" style={{ color: "#5b5cf6" }} className="hover:underline">
+            <Link href="/workflow" style={{ color: "#5b5cf6" }} className="hover:underline">
               Run one
             </Link>
           </div>
@@ -222,11 +222,11 @@ export default function HomePage() {
 
       {/* CTA */}
       <Link
-        href="/simulate"
+        href="/workflow"
         className="inline-flex items-center gap-2 text-sm font-medium transition-colors"
         style={{ color: "#5b5cf6" }}
       >
-        Run Assessment
+        Run Risk Check
         <ArrowRight className="w-4 h-4" />
       </Link>
     </motion.div>
