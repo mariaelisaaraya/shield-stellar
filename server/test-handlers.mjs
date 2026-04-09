@@ -13,25 +13,35 @@
 
 import assert from "node:assert/strict";
 import { createX402Handlers } from "./x402-routes.mjs";
+import { createIdempotencyCache } from "./idempotency-cache.mjs";
 
 const CLEAN_TARGET = "GDGNKYEEYQMFWHYXJA6NGM3573GDSOKQ3L6TTD2DERPELZFHZRDHHYCV";
 const RISKY_TARGET = "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF";
 
 // --- Fake Express req/res harness ---
-function fakeReq({ body, query } = {}) {
-  return { body: body ?? {}, query: query ?? {} };
+function fakeReq({ body, query, headers } = {}) {
+  return {
+    body: body ?? {},
+    query: query ?? {},
+    headers: headers ?? {},
+  };
 }
 
 function fakeRes() {
   const res = {
     statusCode: 200,
     body: undefined,
+    headers: {},
     status(code) {
       this.statusCode = code;
       return this;
     },
     json(payload) {
       this.body = payload;
+      return this;
+    },
+    set(key, value) {
+      this.headers[key] = value;
       return this;
     },
   };
@@ -315,6 +325,168 @@ await checkAsync("thresholdsHandler — falls back to defaults on error", async 
 
   assert.equal(res.statusCode, 200);
   assert.deepEqual(res.body, { low: 30, medium: 70 });
+});
+
+// --- Idempotency cache tests ---------------------------------------------
+
+// Same key + same body → cache hit: adapter called only once, response
+// replayed verbatim, replay header set.
+await checkAsync("idempotency — same key + same body replays", async () => {
+  const { adapter, calls } = mockAdapter();
+  const { verdictHandler } = createX402Handlers(adapter);
+
+  const body = { target: CLEAN_TARGET, amountUsd: 5, action: "transfer" };
+  const headers = { "idempotency-key": "req-abc-1" };
+
+  const res1 = fakeRes();
+  await verdictHandler(fakeReq({ body, headers }), res1);
+
+  const res2 = fakeRes();
+  await verdictHandler(fakeReq({ body, headers }), res2);
+
+  assert.equal(res1.statusCode, 200);
+  assert.equal(res2.statusCode, 200);
+  assert.deepEqual(res2.body, res1.body);
+  assert.equal(res2.headers["X-Idempotent-Replay"], "true");
+  assert.equal(res1.headers["X-Idempotent-Replay"], undefined);
+  // Adapter called exactly once — the second call was served from cache.
+  assert.equal(calls.evaluateScore.length, 1);
+});
+
+// Same key + different body → 409 Conflict (Stripe/GitHub convention).
+await checkAsync("idempotency — same key + different body → 409", async () => {
+  const { adapter, calls } = mockAdapter();
+  const { verdictHandler } = createX402Handlers(adapter);
+
+  const headers = { "idempotency-key": "req-abc-2" };
+
+  const res1 = fakeRes();
+  await verdictHandler(
+    fakeReq({
+      body: { target: CLEAN_TARGET, amountUsd: 5, action: "transfer" },
+      headers,
+    }),
+    res1,
+  );
+
+  const res2 = fakeRes();
+  await verdictHandler(
+    fakeReq({
+      body: { target: CLEAN_TARGET, amountUsd: 5000, action: "swap" },
+      headers,
+    }),
+    res2,
+  );
+
+  assert.equal(res1.statusCode, 200);
+  assert.equal(res2.statusCode, 409);
+  assert.match(res2.body.error, /different request inputs/);
+  // Adapter was called for the first request only.
+  assert.equal(calls.evaluateScore.length, 1);
+});
+
+// Different keys → independent computations.
+await checkAsync("idempotency — different keys are independent", async () => {
+  const { adapter, calls } = mockAdapter();
+  const { verdictHandler } = createX402Handlers(adapter);
+
+  const body = { target: CLEAN_TARGET, amountUsd: 5, action: "transfer" };
+
+  await verdictHandler(
+    fakeReq({ body, headers: { "idempotency-key": "key-A" } }),
+    fakeRes(),
+  );
+  await verdictHandler(
+    fakeReq({ body, headers: { "idempotency-key": "key-B" } }),
+    fakeRes(),
+  );
+
+  // Two different keys → two adapter calls even though inputs match.
+  assert.equal(calls.evaluateScore.length, 2);
+});
+
+// No Idempotency-Key → no caching at all.
+await checkAsync("idempotency — no key → every request recomputes", async () => {
+  const { adapter, calls } = mockAdapter();
+  const { verdictHandler } = createX402Handlers(adapter);
+
+  const body = { target: CLEAN_TARGET, amountUsd: 5, action: "transfer" };
+
+  for (let i = 0; i < 3; i++) {
+    await verdictHandler(fakeReq({ body }), fakeRes());
+  }
+
+  assert.equal(calls.evaluateScore.length, 3);
+});
+
+// Entry expires after TTL elapses → recompute on next call.
+await checkAsync("idempotency — expired entry recomputes", async () => {
+  const { adapter, calls } = mockAdapter();
+
+  // Controllable clock: start at t=0, tick forward between calls.
+  let fakeNow = 1_000_000;
+  const cache = createIdempotencyCache({
+    ttlMs: 1000,
+    maxEntries: 100,
+    now: () => fakeNow,
+  });
+  const { verdictHandler } = createX402Handlers(adapter, { idempotencyCache: cache });
+
+  const body = { target: CLEAN_TARGET, amountUsd: 5, action: "transfer" };
+  const headers = { "idempotency-key": "key-ttl" };
+
+  await verdictHandler(fakeReq({ body, headers }), fakeRes());
+  // Advance past the TTL.
+  fakeNow += 2000;
+  await verdictHandler(fakeReq({ body, headers }), fakeRes());
+
+  // Adapter called twice because the first entry expired.
+  assert.equal(calls.evaluateScore.length, 2);
+});
+
+// Failed (non-200) responses are not cached — a retry should have a
+// chance to succeed if the underlying RPC recovers.
+await checkAsync("idempotency — 500 responses are not cached", async () => {
+  let failures = 1;
+  const { adapter, calls } = mockAdapter({
+    async evaluateScore(score) {
+      calls.evaluateScore.push(score);
+      if (failures > 0) {
+        failures--;
+        throw new Error("rpc flap");
+      }
+      return "ALLOW";
+    },
+  });
+  const { verdictHandler } = createX402Handlers(adapter);
+
+  const body = { target: CLEAN_TARGET, amountUsd: 5, action: "transfer" };
+  const headers = { "idempotency-key": "key-retry" };
+
+  const res1 = fakeRes();
+  await verdictHandler(fakeReq({ body, headers }), res1);
+  assert.equal(res1.statusCode, 500);
+
+  const res2 = fakeRes();
+  await verdictHandler(fakeReq({ body, headers }), res2);
+  // Second call should have hit the adapter again and succeeded.
+  assert.equal(res2.statusCode, 200);
+  assert.equal(res2.body.verdict, "ALLOW");
+});
+
+// LRU eviction keeps cache bounded.
+await checkAsync("idempotency — cache evicts oldest at maxEntries", async () => {
+  const { adapter } = mockAdapter();
+  const cache = createIdempotencyCache({ maxEntries: 2, now: Date.now });
+  const { verdictHandler } = createX402Handlers(adapter, { idempotencyCache: cache });
+
+  const body = { target: CLEAN_TARGET, amountUsd: 5, action: "transfer" };
+
+  await verdictHandler(fakeReq({ body, headers: { "idempotency-key": "k1" } }), fakeRes());
+  await verdictHandler(fakeReq({ body, headers: { "idempotency-key": "k2" } }), fakeRes());
+  await verdictHandler(fakeReq({ body, headers: { "idempotency-key": "k3" } }), fakeRes());
+
+  assert.equal(cache.size(), 2);
 });
 
 console.log("");

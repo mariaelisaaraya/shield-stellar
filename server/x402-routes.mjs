@@ -21,6 +21,10 @@
 // adapters.
 
 import { computeRiskScore, validateScoringInputs } from "./risk-scoring.mjs";
+import {
+  createIdempotencyCache,
+  normalizeVerdictBody,
+} from "./idempotency-cache.mjs";
 
 /**
  * @typedef {object} Assessment
@@ -53,21 +57,30 @@ import { computeRiskScore, validateScoringInputs } from "./risk-scoring.mjs";
  * Build the three protected Express handlers from an adapter.
  *
  * @param {X402Adapter} adapter
+ * @param {object} [options]
+ * @param {ReturnType<typeof createIdempotencyCache>} [options.idempotencyCache]
+ *        Cache used by /verdict to replay responses for callers that
+ *        send an Idempotency-Key header. A default cache is created
+ *        if this is omitted; tests can inject a custom instance with
+ *        a controlled clock to exercise expiration.
  * @returns {{
  *   verdictHandler: import("express").RequestHandler,
  *   statsHandler: import("express").RequestHandler,
  *   thresholdsHandler: import("express").RequestHandler,
+ *   idempotencyCache: ReturnType<typeof createIdempotencyCache>,
  * }}
  */
-export function createX402Handlers(adapter) {
+export function createX402Handlers(adapter, options = {}) {
+  const idempotencyCache = options.idempotencyCache ?? createIdempotencyCache();
   return {
-    verdictHandler: createVerdictHandler(adapter),
+    verdictHandler: createVerdictHandler(adapter, idempotencyCache),
     statsHandler: createStatsHandler(adapter),
     thresholdsHandler: createThresholdsHandler(adapter),
+    idempotencyCache,
   };
 }
 
-function createVerdictHandler({ evaluateScore }) {
+function createVerdictHandler({ evaluateScore }, cache) {
   return async (req, res) => {
     // Reject legacy callers that try to pass a client-computed score.
     // The whole point of this endpoint is that the score is derived
@@ -86,6 +99,32 @@ function createVerdictHandler({ evaluateScore }) {
       return res.status(400).json({ error: validationError });
     }
 
+    // --- Idempotency short-circuit -------------------------------------
+    // If the caller sent an Idempotency-Key and we have a cached answer
+    // for it, replay that answer without recomputing the score or
+    // hitting Soroban. Reusing the same key with a different body is a
+    // client bug and gets a 409 (Stripe/GitHub convention).
+    const idempotencyKey = readIdempotencyKey(req);
+    const bodyStr = normalizeVerdictBody({ target, amountUsd, action, isNewTarget });
+
+    if (idempotencyKey) {
+      const cached = cache.get(idempotencyKey);
+      if (cached) {
+        if (cached.bodyStr !== bodyStr) {
+          return res.status(409).json({
+            error:
+              "Idempotency-Key was reused with different request inputs. " +
+              "Use a new key for a new request.",
+          });
+        }
+        if (typeof res.set === "function") {
+          res.set("X-Idempotent-Replay", "true");
+        }
+        console.log(`[verdict] cache hit idempotency-key=${idempotencyKey}`);
+        return res.status(cached.statusCode).json(cached.responseBody);
+      }
+    }
+
     try {
       const { score, reasons } = computeRiskScore({
         target,
@@ -102,17 +141,41 @@ function createVerdictHandler({ evaluateScore }) {
         `→ score=${score} verdict=${verdict}`,
       );
 
-      res.json({
+      const responseBody = {
         verdict,
         score,
         reasons,
         inputs: { target, amountUsd, action, isNewTarget: isNewTarget ?? true },
-      });
+      };
+
+      // Only cache successful responses. If the adapter failed and we
+      // returned 500, a retry should be allowed to hit the contract
+      // again (maybe the RPC recovered).
+      if (idempotencyKey) {
+        cache.set(idempotencyKey, { bodyStr, statusCode: 200, responseBody });
+      }
+
+      res.json(responseBody);
     } catch (err) {
       console.error("[verdict] contract call failed:", err?.message || err);
       res.status(500).json({ error: "Failed to evaluate score on-chain" });
     }
   };
+}
+
+// Extract the Idempotency-Key header in a case-insensitive way. Express
+// normalizes headers to lowercase already; this also handles fake req
+// objects from tests that might use mixed case.
+function readIdempotencyKey(req) {
+  const headers = req?.headers;
+  if (!headers) return null;
+  const raw =
+    headers["idempotency-key"] ??
+    headers["Idempotency-Key"] ??
+    headers["IDEMPOTENCY-KEY"];
+  if (typeof raw !== "string") return null;
+  const trimmed = raw.trim();
+  return trimmed.length > 0 ? trimmed : null;
 }
 
 function createStatsHandler({ getAgentCount, getTotalAssessments, getAssessment }) {
