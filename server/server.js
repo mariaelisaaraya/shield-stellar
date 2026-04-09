@@ -4,7 +4,8 @@ import { paymentMiddlewareFromConfig } from "@x402/express";
 import { HTTPFacilitatorClient } from "@x402/core/server";
 import { ExactStellarScheme } from "@x402/stellar/exact/server";
 import { execSync } from "child_process";
-import { computeRiskScore, validateScoringInputs, VALID_ACTIONS } from "./risk-scoring.mjs";
+import { VALID_ACTIONS } from "./risk-scoring.mjs";
+import { createX402Handlers } from "./x402-routes.mjs";
 
 dotenv.config();
 
@@ -25,7 +26,10 @@ const CONTRACTS = {
   assessmentRegistry: "CCDUJPZRP6Y62BNDIT3JBSLLOOX4IZTAXHTEWL6AO7NGCTF2P4KNRWST",
 };
 
-// --- Soroban read helper ---
+// --- Soroban read helper (CLI) ---
+// The standalone dev server shells out to the Stellar CLI because it
+// doesn't assume the caller already has a configured RPC client. The
+// start.js path talks directly to Soroban RPC.
 function contractRead(contractId, fn, args = "") {
   const cmd = `stellar contract invoke --id ${contractId} --network testnet --source deployer -- ${fn} ${args} 2>&1`;
   try {
@@ -37,6 +41,40 @@ function contractRead(contractId, fn, args = "") {
     throw err;
   }
 }
+
+// --- Adapter: translates the shared X402Adapter interface to CLI calls ---
+const cliAdapter = {
+  async evaluateScore(score) {
+    const raw = contractRead(CONTRACTS.policyManager, "evaluate_score", `--score ${score}`);
+    return raw.replace(/"/g, "");
+  },
+  async getAgentCount() {
+    return parseInt(contractRead(CONTRACTS.agentRegistry, "get_agent_count")) || 0;
+  },
+  async getTotalAssessments() {
+    return parseInt(contractRead(CONTRACTS.assessmentRegistry, "get_total_assessments")) || 0;
+  },
+  async getAssessment(id) {
+    const data = JSON.parse(
+      contractRead(CONTRACTS.assessmentRegistry, "get_assessment", `--id ${id}`),
+    );
+    return {
+      id: data.id,
+      agent: data.agent,
+      target: data.target,
+      riskScore: data.risk_score,
+      verdict: data.verdict,
+      reason: data.reason,
+      timestamp: data.timestamp,
+    };
+  },
+  async getThresholds() {
+    const result = JSON.parse(contractRead(CONTRACTS.policyManager, "get_thresholds"));
+    return [result[0], result[1]];
+  },
+};
+
+const { verdictHandler, statsHandler, thresholdsHandler } = createX402Handlers(cliAdapter);
 
 const app = express();
 app.use(express.json());
@@ -110,94 +148,12 @@ app.use(
 );
 
 // --- Protected endpoints (require x402 payment) ---
-
-app.post("/verdict", (req, res) => {
-  // Reject legacy callers that try to pass a client-computed score.
-  // The whole point of this endpoint is that the score is derived
-  // server-side from verifiable inputs.
-  if (req.body?.score !== undefined || req.query?.score !== undefined) {
-    return res.status(400).json({
-      error: "score is no longer accepted from callers — it is computed server-side from { target, amountUsd, action }",
-    });
-  }
-
-  const { target, amountUsd, action, isNewTarget } = req.body ?? {};
-
-  const validationError = validateScoringInputs({ target, amountUsd, action });
-  if (validationError) {
-    return res.status(400).json({ error: validationError });
-  }
-
-  try {
-    const { score, reasons } = computeRiskScore({
-      target,
-      amountUsd,
-      action,
-      isNewTarget: isNewTarget ?? true,
-    });
-
-    const result = contractRead(CONTRACTS.policyManager, "evaluate_score", `--score ${score}`);
-    const verdict = result.replace(/"/g, "");
-
-    // Observability: log inputs + derived score + verdict for audit.
-    console.log(
-      `[verdict] target=${target} amountUsd=${amountUsd} action=${action} ` +
-      `→ score=${score} verdict=${verdict}`,
-    );
-
-    res.json({
-      verdict,
-      score,
-      reasons,
-      inputs: { target, amountUsd, action, isNewTarget: isNewTarget ?? true },
-    });
-  } catch (err) {
-    console.error("[verdict] contract read failed:", err.message);
-    res.status(500).json({ error: "Failed to evaluate score on-chain" });
-  }
-});
-
-app.get("/stats", (_, res) => {
-  try {
-    const agentCount = parseInt(contractRead(CONTRACTS.agentRegistry, "get_agent_count")) || 0;
-    const total = parseInt(contractRead(CONTRACTS.assessmentRegistry, "get_total_assessments")) || 0;
-
-    let recent = [];
-    const count = Math.min(total, 10);
-    for (let i = total - 1; i >= total - count; i--) {
-      try {
-        const data = JSON.parse(contractRead(CONTRACTS.assessmentRegistry, "get_assessment", `--id ${i}`));
-        recent.push({
-          id: data.id,
-          agent: data.agent,
-          target: data.target,
-          riskScore: data.risk_score,
-          verdict: data.verdict,
-          reason: data.reason,
-          timestamp: data.timestamp,
-        });
-      } catch {}
-    }
-
-    const blocked = recent.filter((a) => a.verdict === "BLOCK").length;
-    const avgScore = recent.length > 0
-      ? Math.round(recent.reduce((s, a) => s + a.riskScore, 0) / recent.length)
-      : 0;
-
-    res.json({ agentCount, total, blocked, avgScore, recent });
-  } catch {
-    res.json({ agentCount: 0, total: 0, blocked: 0, avgScore: 0, recent: [] });
-  }
-});
-
-app.get("/thresholds", (_, res) => {
-  try {
-    const result = JSON.parse(contractRead(CONTRACTS.policyManager, "get_thresholds"));
-    res.json({ low: result[0], medium: result[1] });
-  } catch {
-    res.json({ low: 30, medium: 70 });
-  }
-});
+// Handlers come from server/x402-routes.mjs so server.js and start.js
+// share identical request/response logic. This file only supplies the
+// CLI-based contract adapter above.
+app.post("/verdict", verdictHandler);
+app.get("/stats", statsHandler);
+app.get("/thresholds", thresholdsHandler);
 
 app.listen(Number(PORT), () => {
   console.log(`\n  ShieldStellar x402 server`);

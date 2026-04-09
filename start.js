@@ -9,7 +9,8 @@ import { paymentMiddlewareFromConfig } from "@x402/express";
 import { HTTPFacilitatorClient } from "@x402/core/server";
 import { ExactStellarScheme } from "@x402/stellar/exact/server";
 import * as StellarSdk from "@stellar/stellar-sdk";
-import { computeRiskScore, validateScoringInputs, VALID_ACTIONS } from "./server/risk-scoring.mjs";
+import { VALID_ACTIONS } from "./server/risk-scoring.mjs";
+import { createX402Handlers } from "./server/x402-routes.mjs";
 
 const dev = process.env.NODE_ENV !== "production";
 const PORT = parseInt(process.env.PORT || "3000", 10);
@@ -88,80 +89,44 @@ if (PAY_TO) {
   );
 }
 
-// Protected endpoints
-//
-// POST /x402/verdict
-// Body: { target, amountUsd, action, isNewTarget? }
-// The score is computed server-side from these inputs. Callers cannot
-// pass a pre-computed `score` — see server/risk-scoring.mjs for the
-// logic and server/test-scoring.mjs for the expected behavior.
-x402Router.post("/verdict", async (req, res) => {
-  if (req.body?.score !== undefined || req.query?.score !== undefined) {
-    return res.status(400).json({
-      error: "score is no longer accepted from callers — it is computed server-side from { target, amountUsd, action }",
-    });
-  }
-
-  const { target, amountUsd, action, isNewTarget } = req.body ?? {};
-
-  const validationError = validateScoringInputs({ target, amountUsd, action });
-  if (validationError) {
-    return res.status(400).json({ error: validationError });
-  }
-
-  try {
-    const { score, reasons } = computeRiskScore({
-      target,
-      amountUsd,
-      action,
-      isNewTarget: isNewTarget ?? true,
-    });
-
+// --- Adapter: translates the shared X402Adapter interface to RPC calls ---
+const rpcAdapter = {
+  async evaluateScore(score) {
     const args = [StellarSdk.nativeToScVal(score, { type: "u32" })];
-    const verdict = await contractCall(CONTRACTS.policyManager, "evaluate_score", args);
-
-    console.log(
-      `[verdict] target=${target} amountUsd=${amountUsd} action=${action} ` +
-      `→ score=${score} verdict=${verdict}`,
-    );
-
-    res.json({
-      verdict,
-      score,
-      reasons,
-      inputs: { target, amountUsd, action, isNewTarget: isNewTarget ?? true },
-    });
-  } catch (err) {
-    console.error("[verdict] contract call failed:", err?.message || err);
-    res.status(500).json({ error: "Failed to evaluate score on-chain" });
-  }
-});
-
-x402Router.get("/stats", async (_, res) => {
-  try {
-    const agentCount = await contractCall(CONTRACTS.agentRegistry, "get_agent_count");
-    const total = await contractCall(CONTRACTS.assessmentRegistry, "get_total_assessments");
-    let recent = [];
-    const count = Math.min(total, 10);
-    for (let i = total - 1; i >= total - count; i--) {
-      try {
-        const args = [StellarSdk.nativeToScVal(i, { type: "u32" })];
-        const data = await contractCall(CONTRACTS.assessmentRegistry, "get_assessment", args);
-        recent.push({ id: data.id, agent: data.agent, target: data.target, riskScore: data.risk_score, verdict: data.verdict, reason: data.reason, timestamp: Number(data.timestamp) });
-      } catch {}
-    }
-    const blocked = recent.filter((a) => a.verdict === "BLOCK").length;
-    const avgScore = recent.length > 0 ? Math.round(recent.reduce((s, a) => s + a.riskScore, 0) / recent.length) : 0;
-    res.json({ agentCount, total, blocked, avgScore, recent });
-  } catch { res.json({ agentCount: 0, total: 0, blocked: 0, avgScore: 0, recent: [] }); }
-});
-
-x402Router.get("/thresholds", async (_, res) => {
-  try {
+    return await contractCall(CONTRACTS.policyManager, "evaluate_score", args);
+  },
+  async getAgentCount() {
+    return (await contractCall(CONTRACTS.agentRegistry, "get_agent_count")) ?? 0;
+  },
+  async getTotalAssessments() {
+    return (await contractCall(CONTRACTS.assessmentRegistry, "get_total_assessments")) ?? 0;
+  },
+  async getAssessment(id) {
+    const args = [StellarSdk.nativeToScVal(id, { type: "u32" })];
+    const data = await contractCall(CONTRACTS.assessmentRegistry, "get_assessment", args);
+    return {
+      id: data.id,
+      agent: data.agent,
+      target: data.target,
+      riskScore: data.risk_score,
+      verdict: data.verdict,
+      reason: data.reason,
+      timestamp: Number(data.timestamp),
+    };
+  },
+  async getThresholds() {
     const result = await contractCall(CONTRACTS.policyManager, "get_thresholds");
-    res.json({ low: result[0], medium: result[1] });
-  } catch { res.json({ low: 30, medium: 70 }); }
-});
+    return [result[0], result[1]];
+  },
+};
+
+// Protected endpoints — handlers from server/x402-routes.mjs. The RPC
+// adapter above is the only thing that differs from the standalone
+// server/server.js entry point.
+const { verdictHandler, statsHandler, thresholdsHandler } = createX402Handlers(rpcAdapter);
+x402Router.post("/verdict", verdictHandler);
+x402Router.get("/stats", statsHandler);
+x402Router.get("/thresholds", thresholdsHandler);
 
 // --- Main Express app ---
 const expressApp = express();
