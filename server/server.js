@@ -37,7 +37,9 @@ function contractRead(contractId, fn, args = "") {
     const lines = output.split("\n");
     return lines.filter((l) => !l.startsWith("ℹ️") && !l.startsWith("⚠️")).join("\n").trim();
   } catch (err) {
-    console.error(`contractRead(${fn}):`, err.message);
+    // Log the full error (with stack) before rethrowing so the
+    // calling handler logs don't lose the CLI failure context.
+    console.error(`contractRead(${fn}):`, err);
     throw err;
   }
 }

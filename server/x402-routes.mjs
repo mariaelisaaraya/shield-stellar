@@ -157,7 +157,10 @@ function createVerdictHandler({ evaluateScore }, cache) {
 
       res.json(responseBody);
     } catch (err) {
-      console.error("[verdict] contract call failed:", err?.message || err);
+      // Pass the full error object (not just `.message`) so Node
+      // prints the stack trace alongside the log line. Render surfaces
+      // that in its live log tail.
+      console.error("[verdict] contract call failed:", err);
       res.status(500).json({ error: "Failed to evaluate score on-chain" });
     }
   };
@@ -190,9 +193,13 @@ function createStatsHandler({ getAgentCount, getTotalAssessments, getAssessment 
         try {
           const assessment = await getAssessment(i);
           if (assessment) recent.push(assessment);
-        } catch {
+        } catch (err) {
           // Individual assessment read failures are non-fatal; skip
-          // the slot and continue building the recent list.
+          // the slot and continue building the recent list. Still log
+          // the error so a systematic problem (e.g. a contract schema
+          // change) surfaces in Render logs instead of silently
+          // producing short lists.
+          console.warn(`[stats] skipped assessment id=${i}:`, err);
         }
       }
 
@@ -203,9 +210,12 @@ function createStatsHandler({ getAgentCount, getTotalAssessments, getAssessment 
           : 0;
 
       res.json({ agentCount, total, blocked, avgScore, recent });
-    } catch {
+    } catch (err) {
       // Falling back to zeros keeps the dashboard alive during an
-      // RPC outage. This mirrors the previous inline behavior.
+      // RPC outage, but the failure must not be invisible — without
+      // logging, a broken Soroban RPC shows as "zero activity" with
+      // no explanation anywhere.
+      console.error("[stats] falling back to zeros:", err);
       res.json({ agentCount: 0, total: 0, blocked: 0, avgScore: 0, recent: [] });
     }
   };
@@ -216,8 +226,11 @@ function createThresholdsHandler({ getThresholds }) {
     try {
       const [low, medium] = await getThresholds();
       res.json({ low, medium });
-    } catch {
+    } catch (err) {
       // Fall back to the on-chain defaults so the UI stays rendered.
+      // Log so we actually know the RPC / PolicyManager is unreachable
+      // instead of the dashboard quietly showing stale defaults.
+      console.error("[thresholds] falling back to defaults:", err);
       res.json({ low: 30, medium: 70 });
     }
   };
