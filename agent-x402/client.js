@@ -51,11 +51,22 @@ function registerAssessment(agentAddr, targetAddr, score, verdict, reason) {
 }
 
 // --- x402 pay and fetch ---
-async function payAndFetch(httpClient, client, endpoint) {
+//
+// Posts a JSON body to an x402-protected endpoint. Handles the 402
+// dance: probe → sign USDC payment → retry with PAYMENT-SIGNATURE.
+async function payAndPost(httpClient, client, endpoint, jsonBody) {
   const url = `${SERVER_URL}${endpoint}`;
-  console.log(`\n→ GET ${url}`);
+  console.log(`\n→ POST ${url}`);
+  console.log(`  Body: ${JSON.stringify(jsonBody)}`);
 
-  const firstTry = await fetch(url);
+  const bodyString = JSON.stringify(jsonBody);
+  const baseHeaders = { "Content-Type": "application/json" };
+
+  const firstTry = await fetch(url, {
+    method: "POST",
+    headers: baseHeaders,
+    body: bodyString,
+  });
   console.log(`  Status: ${firstTry.status}`);
 
   if (firstTry.status !== 402) {
@@ -99,8 +110,9 @@ async function payAndFetch(httpClient, client, endpoint) {
 
   console.log("  Sending paid request...");
   const paidResponse = await fetch(url, {
-    method: "GET",
-    headers: paymentHeaders,
+    method: "POST",
+    headers: { ...baseHeaders, ...paymentHeaders },
+    body: bodyString,
   });
 
   const body = await paidResponse.text();
@@ -133,32 +145,70 @@ async function main() {
   const httpClient = new x402HTTPClient(client);
 
   const agentAddr = signer.address;
-  // Use deployer as target for demo assessments
-  const targetAddr = "GDGNKYEEYQMFWHYXJA6NGM3573GDSOKQ3L6TTD2DERPELZFHZRDHHYCV";
+  // A clean demo target (the deployer address) for the low/medium scenarios.
+  const cleanTarget = "GDGNKYEEYQMFWHYXJA6NGM3573GDSOKQ3L6TTD2DERPELZFHZRDHHYCV";
+  // An address on the server's known-risky list (see server/data/risky-addresses.mjs).
+  // Using this as the target must push the score past the BLOCK threshold.
+  const riskyTarget = "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF";
 
   console.log(`Agent: ${agentAddr}`);
   console.log(`Server: ${SERVER_URL}`);
   console.log(`Network: ${NETWORK}`);
 
-  // --- Assessment 1: Low risk transfer (score 25) ---
-  console.log("\n━━━ Assessment 1: Low risk transfer ━━━");
-  const verdict1 = await payAndFetch(httpClient, client, "/verdict?score=25");
+  // Each scenario sends structured inputs to the server. The server
+  // derives the risk score, calls PolicyManager for the verdict, and
+  // returns both along with human-readable reasons. The client no
+  // longer guesses the score.
+
+  // --- Assessment 1: Low risk transfer ---
+  console.log("\n━━━ Assessment 1: Low-value transfer to a clean target ━━━");
+  const verdict1 = await payAndPost(httpClient, client, "/verdict", {
+    target: cleanTarget,
+    amountUsd: 5,
+    action: "transfer",
+  });
   if (verdict1) {
-    registerAssessment(agentAddr, targetAddr, 25, verdict1.verdict, "Low risk transfer to known address");
+    registerAssessment(
+      agentAddr,
+      cleanTarget,
+      verdict1.score,
+      verdict1.verdict,
+      verdict1.reasons?.[0] ?? "Low risk transfer",
+    );
   }
 
-  // --- Assessment 2: Medium risk swap (score 50) ---
-  console.log("\n━━━ Assessment 2: Medium risk swap ━━━");
-  const verdict2 = await payAndFetch(httpClient, client, "/verdict?score=50");
+  // --- Assessment 2: Medium-value swap ---
+  console.log("\n━━━ Assessment 2: Medium-value swap to a clean target ━━━");
+  const verdict2 = await payAndPost(httpClient, client, "/verdict", {
+    target: cleanTarget,
+    amountUsd: 500,
+    action: "swap",
+  });
   if (verdict2) {
-    registerAssessment(agentAddr, targetAddr, 50, verdict2.verdict, "Swap operation with elevated amount");
+    registerAssessment(
+      agentAddr,
+      cleanTarget,
+      verdict2.score,
+      verdict2.verdict,
+      verdict2.reasons?.[0] ?? "Swap at elevated amount",
+    );
   }
 
-  // --- Assessment 3: High risk contract call (score 85) ---
-  console.log("\n━━━ Assessment 3: High risk contract call ━━━");
-  const verdict3 = await payAndFetch(httpClient, client, "/verdict?score=85");
+  // --- Assessment 3: High-risk contract call to blacklisted target ---
+  console.log("\n━━━ Assessment 3: Contract call to blacklisted address ━━━");
+  const verdict3 = await payAndPost(httpClient, client, "/verdict", {
+    target: riskyTarget,
+    amountUsd: 5000,
+    action: "contract-call",
+  });
   if (verdict3) {
-    registerAssessment(agentAddr, targetAddr, 85, verdict3.verdict, "Contract call to unknown address blocked");
+    registerAssessment(
+      agentAddr,
+      riskyTarget,
+      verdict3.score,
+      verdict3.verdict,
+      verdict3.reasons?.[0] ?? "Blacklisted target",
+    );
   }
 
   console.log("\n=== Done ===");

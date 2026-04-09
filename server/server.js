@@ -4,6 +4,7 @@ import { paymentMiddlewareFromConfig } from "@x402/express";
 import { HTTPFacilitatorClient } from "@x402/core/server";
 import { ExactStellarScheme } from "@x402/stellar/exact/server";
 import { execSync } from "child_process";
+import { computeRiskScore, validateScoringInputs, VALID_ACTIONS } from "./risk-scoring.mjs";
 
 dotenv.config();
 
@@ -56,7 +57,16 @@ app.get("/", (_, res) => {
     network: NETWORK,
     contracts: CONTRACTS,
     endpoints: {
-      "GET /verdict?score=N": "$0.001 — risk verdict evaluation",
+      "POST /verdict": {
+        price: "$0.001",
+        description: "Server-side risk assessment. Score computed from inputs, not trusted from caller.",
+        body: {
+          target: "string — destination Stellar address (56 chars, starts with G)",
+          amountUsd: "number — transaction value in USD",
+          action: `string — one of: ${VALID_ACTIONS.join(", ")}`,
+          isNewTarget: "boolean (optional, default true) — false if caller has verified prior interactions",
+        },
+      },
       "GET /stats": "$0.0005 — dashboard statistics",
       "GET /thresholds": "$0.0005 — policy thresholds",
     },
@@ -69,7 +79,7 @@ const facilitatorClient = new HTTPFacilitatorClient({ url: FACILITATOR_URL });
 app.use(
   paymentMiddlewareFromConfig(
     {
-      "GET /verdict": {
+      "POST /verdict": {
         accepts: {
           scheme: "exact",
           price: "$0.001",
@@ -101,14 +111,49 @@ app.use(
 
 // --- Protected endpoints (require x402 payment) ---
 
-app.get("/verdict", (req, res) => {
+app.post("/verdict", (req, res) => {
+  // Reject legacy callers that try to pass a client-computed score.
+  // The whole point of this endpoint is that the score is derived
+  // server-side from verifiable inputs.
+  if (req.body?.score !== undefined || req.query?.score !== undefined) {
+    return res.status(400).json({
+      error: "score is no longer accepted from callers — it is computed server-side from { target, amountUsd, action }",
+    });
+  }
+
+  const { target, amountUsd, action, isNewTarget } = req.body ?? {};
+
+  const validationError = validateScoringInputs({ target, amountUsd, action });
+  if (validationError) {
+    return res.status(400).json({ error: validationError });
+  }
+
   try {
-    const score = parseInt(req.query.score) || 0;
+    const { score, reasons } = computeRiskScore({
+      target,
+      amountUsd,
+      action,
+      isNewTarget: isNewTarget ?? true,
+    });
+
     const result = contractRead(CONTRACTS.policyManager, "evaluate_score", `--score ${score}`);
     const verdict = result.replace(/"/g, "");
-    res.json({ verdict, score });
-  } catch {
-    res.status(500).json({ error: "Failed to evaluate score" });
+
+    // Observability: log inputs + derived score + verdict for audit.
+    console.log(
+      `[verdict] target=${target} amountUsd=${amountUsd} action=${action} ` +
+      `→ score=${score} verdict=${verdict}`,
+    );
+
+    res.json({
+      verdict,
+      score,
+      reasons,
+      inputs: { target, amountUsd, action, isNewTarget: isNewTarget ?? true },
+    });
+  } catch (err) {
+    console.error("[verdict] contract read failed:", err.message);
+    res.status(500).json({ error: "Failed to evaluate score on-chain" });
   }
 });
 
@@ -161,7 +206,7 @@ app.listen(Number(PORT), () => {
   console.log(`  PayTo: ${PAY_TO}`);
   console.log(`  Facilitator: ${FACILITATOR_URL}\n`);
   console.log(`  Endpoints (x402 protected):`);
-  console.log(`    GET /verdict?score=N  — $0.001`);
-  console.log(`    GET /stats            — $0.0005`);
-  console.log(`    GET /thresholds       — $0.0005\n`);
+  console.log(`    POST /verdict         — $0.001  (body: { target, amountUsd, action })`);
+  console.log(`    GET  /stats           — $0.0005`);
+  console.log(`    GET  /thresholds      — $0.0005\n`);
 });

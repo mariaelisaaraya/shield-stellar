@@ -53,6 +53,13 @@ export const ENDPOINT_PRICES: Record<
 };
 
 // --- Route config for @x402/express paymentMiddlewareFromConfig ---
+//
+// Most endpoints are read-only lookups and use GET. /api/verdict takes
+// a structured body ({ target, amountUsd, action }) and uses POST so
+// the risk score can be computed server-side from those inputs.
+const ENDPOINT_METHODS: Record<string, "GET" | "POST"> = {
+  "/api/verdict": "POST",
+};
 
 export function buildRouteConfig() {
   const routes: Record<
@@ -68,7 +75,8 @@ export function buildRouteConfig() {
   > = {};
 
   for (const [path, config] of Object.entries(ENDPOINT_PRICES)) {
-    routes[`GET ${path}`] = {
+    const method = ENDPOINT_METHODS[path] ?? "GET";
+    routes[`${method} ${path}`] = {
       accepts: {
         scheme: X402_CONFIG.scheme,
         price: config.price,

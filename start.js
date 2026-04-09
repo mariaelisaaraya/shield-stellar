@@ -9,6 +9,7 @@ import { paymentMiddlewareFromConfig } from "@x402/express";
 import { HTTPFacilitatorClient } from "@x402/core/server";
 import { ExactStellarScheme } from "@x402/stellar/exact/server";
 import * as StellarSdk from "@stellar/stellar-sdk";
+import { computeRiskScore, validateScoringInputs, VALID_ACTIONS } from "./server/risk-scoring.mjs";
 
 const dev = process.env.NODE_ENV !== "production";
 const PORT = parseInt(process.env.PORT || "3000", 10);
@@ -56,7 +57,19 @@ const x402Router = express.Router();
 
 // Info endpoint (free, no payment needed)
 x402Router.get("/", (_, res) => {
-  res.json({ name: "ShieldStellar x402 API", network: NETWORK, contracts: CONTRACTS });
+  res.json({
+    name: "ShieldStellar x402 API",
+    network: NETWORK,
+    contracts: CONTRACTS,
+    endpoints: {
+      "POST /x402/verdict": {
+        price: "$0.001",
+        body: { target: "G...", amountUsd: "number", action: VALID_ACTIONS.join("|") },
+      },
+      "GET /x402/stats": "$0.0005",
+      "GET /x402/thresholds": "$0.0005",
+    },
+  });
 });
 
 // x402 payment middleware — gates all routes below
@@ -65,7 +78,7 @@ if (PAY_TO) {
   x402Router.use(
     paymentMiddlewareFromConfig(
       {
-        "GET /verdict": { accepts: { scheme: "exact", price: "$0.001", network: NETWORK, payTo: PAY_TO } },
+        "POST /verdict": { accepts: { scheme: "exact", price: "$0.001", network: NETWORK, payTo: PAY_TO } },
         "GET /stats": { accepts: { scheme: "exact", price: "$0.0005", network: NETWORK, payTo: PAY_TO } },
         "GET /thresholds": { accepts: { scheme: "exact", price: "$0.0005", network: NETWORK, payTo: PAY_TO } },
       },
@@ -76,13 +89,52 @@ if (PAY_TO) {
 }
 
 // Protected endpoints
-x402Router.get("/verdict", async (req, res) => {
+//
+// POST /x402/verdict
+// Body: { target, amountUsd, action, isNewTarget? }
+// The score is computed server-side from these inputs. Callers cannot
+// pass a pre-computed `score` — see server/risk-scoring.mjs for the
+// logic and server/test-scoring.mjs for the expected behavior.
+x402Router.post("/verdict", async (req, res) => {
+  if (req.body?.score !== undefined || req.query?.score !== undefined) {
+    return res.status(400).json({
+      error: "score is no longer accepted from callers — it is computed server-side from { target, amountUsd, action }",
+    });
+  }
+
+  const { target, amountUsd, action, isNewTarget } = req.body ?? {};
+
+  const validationError = validateScoringInputs({ target, amountUsd, action });
+  if (validationError) {
+    return res.status(400).json({ error: validationError });
+  }
+
   try {
-    const score = parseInt(req.query.score) || 0;
+    const { score, reasons } = computeRiskScore({
+      target,
+      amountUsd,
+      action,
+      isNewTarget: isNewTarget ?? true,
+    });
+
     const args = [StellarSdk.nativeToScVal(score, { type: "u32" })];
     const verdict = await contractCall(CONTRACTS.policyManager, "evaluate_score", args);
-    res.json({ verdict, score });
-  } catch { res.status(500).json({ error: "Failed to evaluate score" }); }
+
+    console.log(
+      `[verdict] target=${target} amountUsd=${amountUsd} action=${action} ` +
+      `→ score=${score} verdict=${verdict}`,
+    );
+
+    res.json({
+      verdict,
+      score,
+      reasons,
+      inputs: { target, amountUsd, action, isNewTarget: isNewTarget ?? true },
+    });
+  } catch (err) {
+    console.error("[verdict] contract call failed:", err?.message || err);
+    res.status(500).json({ error: "Failed to evaluate score on-chain" });
+  }
 });
 
 x402Router.get("/stats", async (_, res) => {
