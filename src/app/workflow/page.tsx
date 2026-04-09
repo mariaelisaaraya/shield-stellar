@@ -24,22 +24,10 @@ import {
 type Verdict = "ALLOW" | "WARN" | "BLOCK";
 type StepStatus = "idle" | "active" | "done" | "error";
 
-const ACTION_RISK: Record<string, number> = {
-  transfer: 0, swap: 10, "contract-call": 15, mint: 10, other: 5,
-};
-
-function computeRiskScore(target: string, amount: number, action: string): number {
-  let score = 0;
-  const addr = target.toUpperCase();
-  if (addr.includes("AAAA") || addr.includes("DEAD")) score += 60;
-  if (amount > 100) score += 35;
-  else if (amount > 10) score += 20;
-  else if (amount > 1) score += 10;
-  else score += 5;
-  score += ACTION_RISK[action] || 5;
-  score += 10;
-  return Math.max(0, Math.min(score, 100));
-}
+// Amount entered in the form is interpreted as XLM; the backend
+// scoring engine expects USD, so we convert here. This matches
+// the existing rate used by /api/cre-simulate.
+const XLM_PRICE_USD = 0.12;
 
 const actionTypes = [
   { value: "transfer", label: "Transfer" },
@@ -132,17 +120,32 @@ export default function WorkflowPage() {
     setStepStatuses(FLOW_STEPS.map(() => "idle"));
     setStepDetails(FLOW_STEPS.map(() => undefined));
 
+    // Build the request body once — used for both the x402 gate probe
+    // and the authoritative verdict call. The score is computed by the
+    // server from these inputs; the client never guesses it.
+    const amountUsd = amt * XLM_PRICE_USD;
+    const verdictBody = JSON.stringify({
+      target: form.target,
+      amountUsd,
+      action: form.action,
+    });
+    const verdictHeaders = { "Content-Type": "application/json" };
+
     try {
-      // Step 1: Compute risk score
+      // Step 1: Probe the x402 gate (a POST without a payment signature
+      // returns 402 + requirements; we display that as the UI step).
       setStep(0, "active");
       await new Promise((r) => setTimeout(r, 600));
-      const score = computeRiskScore(form.target, amt, form.action);
-      setStep(0, "done", `Score: ${score}/100 for ${amt} XLM ${form.action}`);
+      setStep(0, "done", `${form.action} for ~$${amountUsd.toFixed(2)} USD (${amt} XLM)`);
 
       // Step 2: x402 payment gate
       setStep(1, "active");
       await new Promise((r) => setTimeout(r, 400));
-      const x402Res = await fetch(`/x402/verdict?score=${score}`);
+      const x402Res = await fetch("/x402/verdict", {
+        method: "POST",
+        headers: verdictHeaders,
+        body: verdictBody,
+      });
       const got402 = x402Res.status === 402;
       setStep(1, "done", got402
         ? "HTTP 402 — $0.001 USDC required"
@@ -155,23 +158,22 @@ export default function WorkflowPage() {
         ? "USDC settled on Stellar in <5s"
         : "No payment needed in demo");
 
-      // Step 4: Soroban verdict
+      // Step 4: Soroban verdict — the server computes the score from
+      // the same body we submitted above, calls PolicyManager, and
+      // returns the authoritative verdict + reasons.
       setStep(3, "active");
-      const verdictRes = await fetch(`/api/verdict?score=${score}`);
+      const verdictRes = await fetch("/api/verdict", {
+        method: "POST",
+        headers: verdictHeaders,
+        body: verdictBody,
+      });
       const verdictData = await verdictRes.json();
+      if (verdictData.error) throw new Error(verdictData.error);
       const verdict = verdictData.verdict as Verdict;
+      const score = verdictData.score as number;
+      const reasons = (verdictData.reasons as string[] | undefined) ?? [];
 
-      const reasons: string[] = [];
-      if (amt > 100) reasons.push("High value transaction");
-      else if (amt > 10) reasons.push("Moderate amount");
-      else reasons.push("Low value transaction");
-      if (form.action === "contract-call") reasons.push("Contract interaction detected");
-      else if (form.action === "swap") reasons.push("Swap operation");
-      if (verdict === "BLOCK") reasons.push("Risk exceeds block threshold");
-      else if (verdict === "WARN") reasons.push("Human review recommended");
-      else reasons.push("All checks passed");
-
-      setStep(3, "done", `${verdict}: ${verdict === "ALLOW" ? "Safe" : verdict === "WARN" ? "Needs review" : "Blocked"}`);
+      setStep(3, "done", `${verdict} (score ${score}/100): ${verdict === "ALLOW" ? "Safe" : verdict === "WARN" ? "Needs review" : "Blocked"}`);
 
       // Step 5: Register assessment on-chain (attestation)
       setStep(4, "active");

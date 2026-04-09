@@ -14,36 +14,10 @@ interface SimResult {
   reasons: string[];
 }
 
-const ACTION_RISK: Record<string, number> = {
-  transfer: 0, swap: 10, "contract-call": 15, mint: 10, other: 5,
-};
-
-function computeRiskScore(target: string, amount: number, action: string): number {
-  let score = 0;
-  const addr = target.toUpperCase();
-  if (addr.includes("AAAA") || addr.includes("DEAD")) score += 60;
-  if (amount > 100) score += 35;
-  else if (amount > 10) score += 20;
-  else if (amount > 1) score += 10;
-  else score += 5;
-  score += ACTION_RISK[action] || 5;
-  score += 10;
-  return Math.max(0, Math.min(score, 100));
-}
-
-function getReasonsForScore(score: number, verdict: Verdict, action: string, amount: number): string[] {
-  const reasons: string[] = [];
-  if (amount > 100) reasons.push("High value transaction");
-  else if (amount > 10) reasons.push("Moderate transaction amount");
-  else reasons.push("Low value transaction");
-  if (action === "contract-call") reasons.push("Contract interaction requires extra scrutiny");
-  else if (action === "swap") reasons.push("Swap operation detected");
-  else if (action === "mint") reasons.push("Mint operation detected");
-  if (verdict === "BLOCK") reasons.push("Risk score exceeds block threshold");
-  else if (verdict === "WARN") reasons.push("Score in warning zone — human review recommended");
-  else reasons.push("All checks passed — safe to execute");
-  return reasons;
-}
+// The form collects amount in XLM; the backend scoring engine takes USD.
+// Matches the rate used by /api/cre-simulate. Replace with a real oracle
+// once the scoring path moves to server-side price feeds.
+const XLM_PRICE_USD = 0.12;
 
 interface TraceStep {
   label: string;
@@ -129,14 +103,27 @@ export default function SimulatePage() {
     setIsRegistered(false);
 
     const amt = parseFloat(form.amount) || 0;
-    const riskScore = computeRiskScore(form.target, amt, form.action);
+    const amountUsd = amt * XLM_PRICE_USD;
+
+    // Body shared between the x402 probe and the authoritative verdict call.
+    // The server computes the risk score from these inputs.
+    const verdictBody = JSON.stringify({
+      target: form.target,
+      amountUsd,
+      action: form.action,
+    });
+    const verdictHeaders = { "Content-Type": "application/json" };
 
     // Try x402 server first — shows payment gate in action
     let paidViaX402 = false;
     try {
-      const x402Res = await fetch(`/x402/verdict?score=${riskScore}`);
+      const x402Res = await fetch("/x402/verdict", {
+        method: "POST",
+        headers: verdictHeaders,
+        body: verdictBody,
+      });
       if (x402Res.status === 402) {
-        // x402 gate active — agent needs to pay USDC to access
+        // x402 gate active — agent would need to pay USDC to access
         paidViaX402 = false;
       }
     } catch {
@@ -149,12 +136,18 @@ export default function SimulatePage() {
     setTraceProgress(0);
 
     try {
-      // Use free API for the demo (agents pay via x402 in production)
-      const response = await fetch(`/api/verdict?score=${riskScore}`);
+      // Use free API for the demo (agents pay via x402 in production).
+      // Score and reasons are derived server-side from { target, amountUsd, action }.
+      const response = await fetch("/api/verdict", {
+        method: "POST",
+        headers: verdictHeaders,
+        body: verdictBody,
+      });
       const json = await response.json();
       if (json.error) throw new Error(json.error);
       const verdict = json.verdict as Verdict;
-      const reasons = getReasonsForScore(riskScore, verdict, form.action, amt);
+      const riskScore = json.score as number;
+      const reasons = (json.reasons as string[] | undefined) ?? [];
       pendingResult.current = { score: riskScore, verdict, reasons };
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to query PolicyManager");
