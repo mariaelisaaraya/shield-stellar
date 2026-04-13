@@ -16,6 +16,7 @@ interface StellarWalletState {
   isConnected: boolean;
   isFreighterAvailable: boolean;
   displayName: string;
+  connectError: string | null;
   connect: () => Promise<void>;
 }
 
@@ -24,6 +25,7 @@ const StellarWalletContext = createContext<StellarWalletState>({
   isConnected: false,
   isFreighterAvailable: false,
   displayName: "",
+  connectError: null,
   connect: async () => {},
 });
 
@@ -39,14 +41,25 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   const [publicKey, setPublicKey] = useState<string | null>(null);
   const [isFreighterAvailable, setIsFreighterAvailable] = useState(false);
+  const [connectError, setConnectError] = useState<string | null>(null);
 
   useEffect(() => {
     isFreighterInstalled().then(setIsFreighterAvailable);
   }, []);
 
   const connect = async () => {
-    const key = await getFreighterPublicKey();
-    if (key) setPublicKey(key);
+    try {
+      setConnectError(null);
+      const key = await getFreighterPublicKey();
+      if (key) {
+        setPublicKey(key);
+        setConnectError(null);
+      } else {
+        setConnectError("No se pudo conectar Freighter. Revisa permisos de la extension.");
+      }
+    } catch {
+      setConnectError("Error al conectar wallet. Intenta de nuevo y revisa Freighter.");
+    }
   };
 
   const walletState: StellarWalletState = {
@@ -54,6 +67,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     isConnected: !!publicKey,
     isFreighterAvailable,
     displayName: publicKey ? formatStellarAddress(publicKey) : "",
+    connectError,
     connect,
   };
 

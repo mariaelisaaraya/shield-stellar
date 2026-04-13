@@ -4,10 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard,
-  Shield,
-  Zap,
-  Clock,
+  Map,
   Menu,
   X,
 } from "lucide-react";
@@ -15,10 +12,7 @@ import { useStellarWallet } from "@/components/providers";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/workflow", label: "Risk Check", icon: Zap },
-  { href: "/policy", label: "Policy", icon: Shield },
-  { href: "/history", label: "History", icon: Clock },
+  { href: "/map", label: "Arena Map", icon: Map },
 ];
 
 function RadarIcon({ className }: { className?: string }) {
@@ -83,7 +77,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           className="font-mono tracking-[0.15em]"
           style={{ fontSize: "10px", color: "#a1a1aa" }}
         >
-          PLATFORM
+          ARENA
         </span>
       </div>
 
@@ -149,7 +143,7 @@ export function Sidebar() {
         className="md:hidden sticky top-0 z-40 flex h-14 items-center justify-between px-4"
         style={{ backgroundColor: "#ffffff", borderBottom: "1px solid #ebebed" }}
       >
-        <Link href="/" className="flex items-center gap-2.5">
+        <Link href="/map" className="flex items-center gap-2.5">
           <RadarIcon className="w-5 h-5 shrink-0" />
           <span className="text-sm font-bold tracking-tight" style={{ color: "#0f0f10" }}>
             ShieldStellar

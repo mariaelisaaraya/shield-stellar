@@ -108,23 +108,82 @@ export async function fundTestnetAccount(publicKey: string): Promise<boolean> {
 
 // --- Freighter Wallet (v6+ API) ---
 
+function extractFreighterAddress(value: unknown): string | null {
+  if (typeof value === "string") {
+    return value.startsWith("G") ? value : null;
+  }
+
+  if (value && typeof value === "object") {
+    const rec = value as Record<string, unknown>;
+    const address = rec.address;
+    const publicKey = rec.publicKey;
+
+    if (typeof address === "string" && address.startsWith("G")) return address;
+    if (typeof publicKey === "string" && publicKey.startsWith("G")) return publicKey;
+  }
+
+  return null;
+}
+
 export async function isFreighterInstalled(): Promise<boolean> {
   if (typeof window === "undefined") return false;
+
+  if (window.freighterApi) return true;
+
   try {
-    const { isConnected } = await import("@stellar/freighter-api");
-    const result = await isConnected();
-    return result.isConnected;
+    const freighter = await import("@stellar/freighter-api");
+    return (
+      typeof freighter.getPublicKey === "function" ||
+      typeof freighter.requestAccess === "function"
+    );
   } catch {
     return false;
   }
 }
 
 export async function getFreighterPublicKey(): Promise<string | null> {
+  if (typeof window === "undefined") return null;
+
+  const api = window.freighterApi;
+
   try {
-    const { requestAccess } = await import("@stellar/freighter-api");
-    const result = await requestAccess();
-    return result.address ?? null;
-  } catch {
+    // Prefer direct injected API when available.
+    if (api) {
+      if (typeof api.getPublicKey === "function") {
+        const key = await api.getPublicKey();
+        const fromPublicKey = extractFreighterAddress(key);
+        if (fromPublicKey) return fromPublicKey;
+      }
+
+      if (typeof api.requestAccess === "function") {
+        const access = await api.requestAccess();
+        const fromAccess = extractFreighterAddress(access);
+        if (fromAccess) return fromAccess;
+      }
+    }
+
+    // Fallback to SDK API shape used by different Freighter versions.
+    const freighter = await import("@stellar/freighter-api");
+
+    if (typeof freighter.getPublicKey === "function") {
+      try {
+        const key = await freighter.getPublicKey();
+        const fromPublicKey = extractFreighterAddress(key);
+        if (fromPublicKey) return fromPublicKey;
+      } catch {
+        // Fall through to requestAccess.
+      }
+    }
+
+    if (typeof freighter.requestAccess === "function") {
+      const access = await freighter.requestAccess();
+      const fromAccess = extractFreighterAddress(access);
+      if (fromAccess) return fromAccess;
+    }
+
+    return null;
+  } catch (error) {
+    console.warn("Freighter connect failed:", error);
     return null;
   }
 }

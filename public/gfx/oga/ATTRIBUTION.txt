@@ -1,0 +1,6 @@
+Source: OpenGameArt - 16x16 Game Assets
+URL: https://opengameart.org/content/16x16-game-assets
+Downloaded file: https://opengameart.org/sites/default/files/tilesets_0.zip
+Author: George_
+License: CC-BY 3.0 (credit required)
+Date downloaded: 2026-04-13

@@ -1,4 +1,8 @@
 interface Window {
+  freighterApi?: {
+    requestAccess?: () => Promise<unknown>;
+    getPublicKey?: () => Promise<unknown>;
+  };
   ethereum?: {
     request: (args: { method: string; params?: unknown[] }) => Promise<any>;
     on?: (event: string, handler: (...args: any[]) => void) => void;

@@ -1,5 +1,5 @@
 import MapArena from "@/components/map-arena";
 
-export default function HomePage() {
+export default function MapPage() {
   return <MapArena />;
 }

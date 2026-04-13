@@ -1,7 +1,6 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Inconsolata } from "next/font/google";
 
-import { Sidebar } from "@/components/sidebar";
 import { Providers } from "@/components/providers";
 
 import "./globals.css";
@@ -21,6 +20,13 @@ export const metadata: Metadata = {
   description: "AI agent risk assessment with x402 payments on Stellar",
 };
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#060d06",
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -33,12 +39,11 @@ export default function RootLayout({
         style={{ backgroundColor: "#f7f7f8", color: "#0f0f10" }}
       >
         <Providers>
-          <Sidebar />
           <main
-            className="md:ml-[240px] min-h-dvh overflow-y-auto px-4 py-6 md:px-8 md:py-8"
+            className="min-h-dvh w-full overflow-y-auto"
             style={{ backgroundColor: "#f7f7f8" }}
           >
-            <div className="max-w-5xl">{children}</div>
+            {children}
           </main>
         </Providers>
       </body>
