@@ -17,7 +17,7 @@ import {
 import { useStellarWallet } from "@/components/providers";
 
 type Verdict = "ALLOW" | "WARN" | "BLOCK";
-type Phase = "checking" | "marching" | "arrived";
+type Phase = "checking" | "marching" | "arrived" | "entering";
 type StepStatus = "idle" | "active" | "done" | "error";
 
 interface NPC {
@@ -33,6 +33,14 @@ interface NPC {
   offsetX: number;
   offsetY: number;
   historic: boolean;
+}
+
+interface InsideNPC {
+  id: string;
+  verdict: Verdict;
+  address: string;
+  x: number;
+  y: number;
 }
 
 interface CheckResult {
@@ -76,6 +84,7 @@ const CASTLE: Record<Verdict, { x: number; y: number }> = {
   BLOCK: { x: 84, y: 34 },
 };
 const SPAWN = { x: 50, y: 71 };
+const GATE_OFFSET_Y = 14;
 
 // ---------- color palettes ----------
 const VC: Record<Verdict, {
@@ -152,8 +161,11 @@ function formatTime(ts?: number) {
 }
 
 // ---------- pixel-art castle SVG ----------
-function PixelCastle({ verdict }: { verdict: Verdict }) {
+function PixelCastle({ verdict, marchingCount = 0, gateOpen = false }: { verdict: Verdict; marchingCount?: number; gateOpen?: boolean }) {
   const C = VC[verdict];
+  const gateLift = gateOpen ? 8 : 0;
+  const gateGlow = gateOpen ? C.accent : "#334155";
+  const courtyard = verdict === "BLOCK" ? "#3f1414" : verdict === "WARN" ? "#5d4314" : "#1f4d2a";
   return (
     <svg
       viewBox="0 0 100 80"
@@ -183,14 +195,26 @@ function PixelCastle({ verdict }: { verdict: Verdict }) {
 
       {/* main wall */}
       <rect x="16" y="34" width="68" height="46" fill={C.mid} opacity="0.9" />
+
+      {/* courtyard strip inspired by reference castles */}
+      <rect x="24" y="36" width="52" height="16" fill={courtyard} opacity="0.95" />
+      <rect x="28" y="40" width="10" height="8" fill={C.accent} opacity="0.16" />
+      <rect x="62" y="40" width="10" height="8" fill={C.accent} opacity="0.16" />
       {/* wall battlements */}
       {[20, 28, 36, 44, 52, 60, 68, 76].map((x) => (
         <rect key={x} x={x} y="24" width="5" height="11" fill={C.mid} opacity="0.9" />
       ))}
 
-      {/* gate */}
+      {/* gate with interaction feedback */}
       <rect x="38" y="54" width="24" height="26" fill="#050a05" />
       <ellipse cx="50" cy="54" rx="12" ry="7" fill="#050a05" />
+      <rect x="39" y={55 - gateLift} width="22" height="23" fill="#111827" opacity="0.9" />
+      <rect x="39" y={54 - gateLift} width="22" height="2" fill={gateOpen ? C.accent : "#475569"} opacity="0.8" />
+      {[41, 45, 49, 53, 57].map((x) => (
+        <rect key={x} x={x} y={56 - gateLift} width="1.3" height="20" fill={gateGlow} opacity={gateOpen ? 0.7 : 0.3} />
+      ))}
+      <rect x="40" y={58 - gateLift} width="20" height="2" fill={gateOpen ? C.accent : "#334155"} opacity="0.7" />
+      {marchingCount > 0 && <circle cx="50" cy="67" r="3" fill={C.accent} opacity="0.35" />}
 
       {/* tower windows */}
       <rect x="5"  y="32" width="8" height="12" fill={C.accent} opacity="0.55" rx="1" />
@@ -208,6 +232,14 @@ function PixelCastle({ verdict }: { verdict: Verdict }) {
       <polygon points="15,0 15,10 24,5" fill={C.accent} />
       <rect x="85" y="0" width="2" height="16" fill="#9ca3af" />
       <polygon points="85,0 85,10 76,5" fill={C.accent} />
+
+      {/* tiny threat glyphs for BLOCK to echo darker reference */}
+      {verdict === "BLOCK" && (
+        <>
+          <circle cx="33" cy="35" r="1.5" fill="#7f1d1d" opacity="0.8" />
+          <circle cx="67" cy="35" r="1.5" fill="#7f1d1d" opacity="0.8" />
+        </>
+      )}
     </svg>
   );
 }
@@ -340,8 +372,57 @@ export default function MapPage() {
   const [stepStatuses, setStepStatuses] = useState<StepStatus[]>(FLOW_STEPS.map(() => "idle"));
   const [stepDetails, setStepDetails] = useState<(string | undefined)[]>(FLOW_STEPS.map(() => undefined));
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [gateOpenLoad, setGateOpenLoad] = useState<Record<Verdict, number>>({ ALLOW: 0, WARN: 0, BLOCK: 0 });
+  const [insideNpcs, setInsideNpcs] = useState<InsideNPC[]>([]);
   const counterRef = useRef(0);
   const activeStepRef = useRef(-1);
+
+  const insideSlots: Record<Verdict, Array<{ x: number; y: number }>> = {
+    ALLOW: [
+      { x: CASTLE.ALLOW.x - 2, y: CASTLE.ALLOW.y - 3.8 },
+      { x: CASTLE.ALLOW.x + 2, y: CASTLE.ALLOW.y - 3.2 },
+      { x: CASTLE.ALLOW.x + 0.5, y: CASTLE.ALLOW.y - 5.2 },
+    ],
+    WARN: [
+      { x: CASTLE.WARN.x - 2.5, y: CASTLE.WARN.y - 3.3 },
+      { x: CASTLE.WARN.x + 2, y: CASTLE.WARN.y - 3.9 },
+      { x: CASTLE.WARN.x + 0.2, y: CASTLE.WARN.y - 5.4 },
+    ],
+    BLOCK: [
+      { x: CASTLE.BLOCK.x - 2, y: CASTLE.BLOCK.y - 3.8 },
+      { x: CASTLE.BLOCK.x + 2.5, y: CASTLE.BLOCK.y - 3.4 },
+      { x: CASTLE.BLOCK.x + 0.3, y: CASTLE.BLOCK.y - 5.2 },
+    ],
+  };
+
+  const triggerGateInteraction = useCallback((id: string, verdict: Verdict) => {
+    setNPCs((prev) => prev.map((n) => (n.id === id ? { ...n, phase: "arrived" as Phase } : n)));
+
+    setTimeout(() => {
+      setNPCs((prev) => prev.map((n) => (n.id === id ? { ...n, phase: "entering" as Phase } : n)));
+      setGateOpenLoad((prev) => ({ ...prev, [verdict]: prev[verdict] + 1 }));
+
+      const slotPool = insideSlots[verdict];
+      const slot = slotPool[Math.floor(Math.random() * slotPool.length)];
+      const insideId = `${id}-inside`;
+      setInsideNpcs((prev) => [...prev, { id: insideId, verdict, address: id.slice(0, 8), x: slot.x, y: slot.y }]);
+
+      // NPC disappears as it enters the gate
+      setTimeout(() => {
+        setNPCs((prev) => prev.filter((n) => !(n.id === id && !n.historic)));
+      }, 520);
+
+      // NPC inside the castle remains visible briefly
+      setTimeout(() => {
+        setInsideNpcs((prev) => prev.filter((n) => n.id !== insideId));
+      }, 3200);
+
+      // Door remains active for a short period to show open/close interaction
+      setTimeout(() => {
+        setGateOpenLoad((prev) => ({ ...prev, [verdict]: Math.max(0, prev[verdict] - 1) }));
+      }, 2000);
+    }, 320);
+  }, []);
 
   const setStep = (i: number, status: StepStatus, detail?: string) => {
     activeStepRef.current = status === "active" ? i : activeStepRef.current;
@@ -533,9 +614,7 @@ export default function MapPage() {
       );
 
       setTimeout(() => {
-        setNPCs((prev) =>
-          prev.map((n) => (n.id === id ? { ...n, phase: "arrived" as Phase } : n))
-        );
+        triggerGateInteraction(id, verdict);
       }, 2600);
     } catch {
       const active = activeStepRef.current;
@@ -551,27 +630,38 @@ export default function MapPage() {
         )
       );
       setTimeout(() => {
-        setNPCs((prev) =>
-          prev.map((n) => (n.id === id ? { ...n, phase: "arrived" as Phase } : n))
-        );
+        triggerGateInteraction(id, verdict);
       }, 2600);
     }
 
     setChecking(false);
-  }, [checking, form]);
+  }, [checking, form, triggerGateInteraction]);
 
   // ---- compute NPC positions ----
   function getPos(npc: NPC) {
     if (!npc.verdict || npc.phase === "checking") return SPAWN;
     const base = CASTLE[npc.verdict];
-    return { x: base.x + npc.offsetX * 0.8, y: base.y + npc.offsetY + 14 };
+    return { x: base.x + npc.offsetX * 0.8, y: base.y + npc.offsetY + GATE_OFFSET_Y };
   }
   function getInitPos(npc: NPC) {
     if (npc.historic && npc.verdict) {
       const base = CASTLE[npc.verdict];
-      return { x: base.x + npc.offsetX * 0.8, y: base.y + npc.offsetY + 14 };
+      return { x: base.x + npc.offsetX * 0.8, y: base.y + npc.offsetY + GATE_OFFSET_Y };
     }
     return SPAWN;
+  }
+
+  const doorTraffic: Record<Verdict, { marching: number; arrived: number; entering: number; queued: number }> = {
+    ALLOW: { marching: 0, arrived: 0, entering: 0, queued: 0 },
+    WARN: { marching: 0, arrived: 0, entering: 0, queued: 0 },
+    BLOCK: { marching: 0, arrived: 0, entering: 0, queued: 0 },
+  };
+  for (const npc of npcs) {
+    if (!npc.verdict) continue;
+    if (npc.phase === "marching") doorTraffic[npc.verdict].marching += 1;
+    if (npc.phase === "arrived") doorTraffic[npc.verdict].arrived += 1;
+    if (npc.phase === "entering") doorTraffic[npc.verdict].entering += 1;
+    if (npc.phase === "marching" || npc.phase === "arrived") doorTraffic[npc.verdict].queued += 1;
   }
 
   const selected = selectedId ? npcs.find((n) => n.id === selectedId) : null;
@@ -729,6 +819,8 @@ export default function MapPage() {
         {(["ALLOW", "WARN", "BLOCK"] as Verdict[]).map((v) => {
           const pos = CASTLE[v];
           const C = VC[v];
+          const traffic = doorTraffic[v];
+          const gateOpen = gateOpenLoad[v] > 0 || traffic.entering > 0;
           return (
             <div
               key={v}
@@ -754,7 +846,38 @@ export default function MapPage() {
                 }}
               />
 
-              <PixelCastle verdict={v} />
+              {/* local environment ring around castle base */}
+              <div
+                style={{
+                  position: "absolute",
+                  width: "188px",
+                  height: "68px",
+                  left: "50%",
+                  top: "84%",
+                  transform: "translate(-50%, -50%)",
+                  borderRadius: "999px",
+                  background: `radial-gradient(ellipse at center, ${C.glow} 0%, rgba(0,0,0,0) 72%)`,
+                  border: `1px solid ${C.terrainStroke}`,
+                  opacity: 0.35,
+                  zIndex: -1,
+                }}
+              />
+
+              <PixelCastle verdict={v} marchingCount={traffic.marching} gateOpen={gateOpen} />
+
+              {(traffic.marching > 0 || traffic.arrived > 0 || gateOpen) && (
+                <div
+                  style={{
+                    width: "10px",
+                    height: "10px",
+                    borderRadius: "999px",
+                    margin: "-18px auto 4px",
+                    backgroundColor: C.accent,
+                    boxShadow: `0 0 14px ${C.accent}`,
+                    animation: "doorPulse 1s ease-in-out infinite",
+                  }}
+                />
+              )}
 
               {/* castle name */}
               <div
@@ -802,9 +925,55 @@ export default function MapPage() {
                   ×{counts[v]}
                 </div>
               )}
+
+              {traffic.queued > 0 && (
+                <div
+                  style={{
+                    marginTop: "2px",
+                    fontFamily: "monospace",
+                    fontSize: "8px",
+                    letterSpacing: "0.08em",
+                    color: C.accent,
+                    opacity: 0.85,
+                  }}
+                >
+                  QUEUE {traffic.queued}
+                </div>
+              )}
             </div>
           );
         })}
+
+        {/* NPCs visible inside castles after entry */}
+        <AnimatePresence>
+          {insideNpcs.map((npc) => {
+            const color = VC[npc.verdict].accent;
+            return (
+              <motion.div
+                key={npc.id}
+                initial={{ left: `${npc.x}%`, top: `${npc.y}%`, opacity: 0, scale: 0.6 }}
+                animate={{ left: `${npc.x}%`, top: `${npc.y}%`, opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.4 }}
+                transition={{ duration: 0.35 }}
+                style={{
+                  position: "absolute",
+                  transform: "translate(-50%, -100%)",
+                  zIndex: 16,
+                  pointerEvents: "none",
+                }}
+              >
+                <motion.div
+                  animate={{ y: [0, -2, 0] }}
+                  transition={{ repeat: Infinity, duration: 1, ease: "easeInOut" }}
+                  style={{ textAlign: "center" }}
+                >
+                  <div style={{ width: "7px", height: "7px", borderRadius: "999px", margin: "0 auto", backgroundColor: color, boxShadow: `0 0 8px ${color}` }} />
+                  <div style={{ fontSize: "6px", fontFamily: "monospace", color, marginTop: "1px" }}>INSIDE</div>
+                </motion.div>
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
 
         {/* spawn label */}
         <div
@@ -831,19 +1000,25 @@ export default function MapPage() {
             const initPos = getInitPos(npc);
             const isChecking = npc.phase === "checking";
             const isMarching = npc.phase === "marching";
+            const isEntering = npc.phase === "entering";
             const duration = isMarching ? 2.3 : 0;
 
             return (
               <motion.div
                 key={npc.id}
                 initial={{ left: `${initPos.x}%`, top: `${initPos.y}%`, opacity: 0, scale: 0 }}
-                animate={{ left: `${pos.x}%`, top: `${pos.y}%`, opacity: 1, scale: 1 }}
+                animate={{
+                  left: `${pos.x}%`,
+                  top: `${pos.y}%`,
+                  opacity: isEntering ? 0 : 1,
+                  scale: isEntering ? 0.25 : 1,
+                }}
                 exit={{ opacity: 0, scale: 0 }}
                 transition={{
                   left: { duration, ease: "easeInOut" },
                   top:  { duration, ease: "easeInOut" },
-                  opacity: { duration: 0.25 },
-                  scale: { duration: 0.25 },
+                  opacity: { duration: isEntering ? 0.45 : 0.25 },
+                  scale: { duration: isEntering ? 0.45 : 0.25 },
                 }}
                 style={{
                   position: "absolute",
@@ -855,11 +1030,19 @@ export default function MapPage() {
               >
                 {/* bounce shell while checking */}
                 <motion.div
-                  animate={isChecking ? { y: [0, -7, 0], scale: [1, 1.08, 1] } : { y: 0 }}
+                  animate={
+                    isChecking
+                      ? { y: [0, -7, 0], scale: [1, 1.08, 1] }
+                      : npc.phase === "arrived"
+                        ? { y: [0, -2, 0], x: [0, 1, -1, 0] }
+                        : { y: 0, x: 0 }
+                  }
                   transition={
                     isChecking
                       ? { repeat: Infinity, duration: 0.55, ease: "easeInOut" }
-                      : { duration: 0 }
+                      : npc.phase === "arrived"
+                        ? { repeat: Infinity, duration: 0.9, ease: "easeInOut" }
+                        : { duration: 0 }
                   }
                   style={{ textAlign: "center" }}
                 >
@@ -1328,6 +1511,11 @@ export default function MapPage() {
         @keyframes haloPulse {
           0%, 100% { opacity: 0.5; transform: scale(1); }
           50%       { opacity: 1;   transform: scale(1.12); }
+        }
+
+        @keyframes doorPulse {
+          0%, 100% { transform: scale(0.9); opacity: 0.45; }
+          50% { transform: scale(1.15); opacity: 1; }
         }
 
         @keyframes cloudDrift {
