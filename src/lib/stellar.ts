@@ -133,7 +133,7 @@ export async function isFreighterInstalled(): Promise<boolean> {
   try {
     const freighter = await import("@stellar/freighter-api");
     return (
-      typeof freighter.getPublicKey === "function" ||
+      typeof freighter.getAddress === "function" ||
       typeof freighter.requestAccess === "function"
     );
   } catch {
@@ -165,11 +165,11 @@ export async function getFreighterPublicKey(): Promise<string | null> {
     // Fallback to SDK API shape used by different Freighter versions.
     const freighter = await import("@stellar/freighter-api");
 
-    if (typeof freighter.getPublicKey === "function") {
+    if (typeof freighter.getAddress === "function") {
       try {
-        const key = await freighter.getPublicKey();
-        const fromPublicKey = extractFreighterAddress(key);
-        if (fromPublicKey) return fromPublicKey;
+        const address = await freighter.getAddress();
+        const fromAddress = extractFreighterAddress(address);
+        if (fromAddress) return fromAddress;
       } catch {
         // Fall through to requestAccess.
       }
